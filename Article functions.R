@@ -1279,13 +1279,15 @@ th <- theme(
 setwd("C:/Users/Christoffer/OneDrive/1PhD/R files/Important excel and text documents")
 
 grs <- gr("AVENIO_genes.txt")
-setwd("C:/Users/Christoffer/OneDrive/1PhD/R files/Cell BAM files")
-A549_input <- gene_count("A549_input.bam", grs)
+setwd("D:/Cell ChIP/Deduped")
 A549_ChIP <- gene_count("A549_ChIP.bam", grs)
-HCC827_input <- gene_count("HCC827input.bam", grs)
 HCC827_ChIP <- gene_count("HCC827ChIP.bam", grs)
-Clone3_input <- gene_count("HCC827_ER_klon3_input.bam", grs)
 Clone3_ChIP <- gene_count("HCC827_ER_klon3_ChIP.bam", grs)
+
+setwd("D:/Cell input/Deduped")
+A549_input <- gene_count("A549_input.bam", grs)
+Clone3_input <- gene_count("HCC827_ER_klon3_input.bam", grs)
+HCC827_input <- gene_count("HCC827input.bam", grs)
 
 HCC827_bam <- bam("HCC827ChIP.bam", "HCC827ChIP.bam.bai")
 A549_bam <- bam("A549_ChIP.bam", "A549_ChIP.bam.bai")
@@ -1374,7 +1376,7 @@ bar_overlap(clone3_enrichment, HCC827_enrichment, TPM_AVENIO, "log2.HCC827", "lo
             bad, d = 1)
 
 gc()
-setwd("C:/Users/Christoffer/OneDrive/1PhD/Adeno, plano and SCLC article/cfChIP-seq")
+setwd("D:/Lung cancer cfChIP/Deduped")
 Adeno1 <- gene_count("A-1279-cfChIP.bam",grs)
 Adeno2 <- gene_count("B-1288-cfChIP.bam", grs)
 Adeno3 <- gene_count("C-1475-cfChIP.bam", grs)
@@ -1387,7 +1389,7 @@ SCLC1 <- gene_count("G-514-cfChIP.bam", grs)
 SCLC2 <- gene_count("H-1169-cfChIP.bam", grs)
 SCLC3 <- gene_count("K-440-cfChIP.bam", grs)
 SCLC4 <- gene_count("L-1100-cfChIP.bam", grs)
-setwd("C:/Users/Christoffer/OneDrive/1PhD/R files/Healthy control cfChIP")
+setwd("D:/Healthy cfChIP/Deduped")
 healthy1 <- gene_count("Rask_kontrol1_cfChIP.bam",grs)
 healthy2 <- gene_count("Rask_kontrol2_cfChIP.bam",grs)
 healthy3 <- gene_count("Rask_kontrol3_cfChIP.bam",grs)
@@ -1488,11 +1490,11 @@ ChIPcorr(Adeno1_enrichment, Adeno3_enrichment, "NAC.1", "NAC.3",bad)
 ChIPcorr(Adeno1_enrichment, Adeno4_enrichment, "NAC.1", "NAC.4",bad)
 ChIPcorr(Adeno2_enrichment, Adeno3_enrichment, "NAC.2", "NAC.3",bad)
 ChIPcorr(Adeno2_enrichment, Adeno4_enrichment, "NAC.2", "NAC.4",bad)
-ChIPcorr(Adeno3_enrichment, Adeno4_enrichment, "NAC.3", "NAC.4",bad)
+ChIPcorr(Adeno4_enrichment, Adeno3_enrichment, "NAC.4", "NAC.3",bad)
 
-ggsave(filename = "cfChIP-seq comparison of NAC.2 and NAC.3.png",
-       width = 9137, height = 5812, units = "px",
-       path = "C:/Users/Christoffer/OneDrive/1PhD/Adeno, plano and SCLC article/Figures and tables/Supplementary/Supp 7",
+ggsave(filename = "cfChIP-seq comparison of NAC.1 and NAC.3.png",
+       width = 10312, height = 7437, units = "px",
+       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/Figures and tables/Figure 3",
        dpi = 1200,
        device = "png")
 
@@ -1523,6 +1525,33 @@ ChIPcorr(Plano_tot_enrichment, SCLC_tot_enrichment, "Plano avg", "SCLC avg", bad
 ChIPcorr(NSCLC_tot_enrichment,SCLC_tot_enrichment, "NSCLC", "SCLC", bad)
 ChIPcorr_fun(NSCLC_tot_unnormalized_enrichment,average_enrichment(list_healthy_enrichment), "NSCLC", "Healthy", bad)
 
+EGFR_mut <- list(Adeno1_enrichment, Adeno4_enrichment)
+EGFR_wt <- list(Adeno2_enrichment, Adeno3_enrichment,
+                Plano1_enrichment, Plano2_enrichment,
+                Plano3_enrichment, Plano4_enrichment)
+EGFR_mut_enrichment <- average_enrichment(EGFR_mut)
+EGFR_WT_enrichment <- average_enrichment(EGFR_wt)
+
+ChIPcorr(EGFR_mut_enrichment, EGFR_WT_enrichment, "EGFR mutated", "EGFR WT", bad)
+
+ggsave(filename = "cfChIP-seq comparison of EGFR mutated and EGFR WT NSCLC.png",
+       width = 10312, height = 7437, units = "px",
+       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables",
+       dpi = 1200,
+       device = "png")
+
+
+Adeno_tot <- list(Adeno1_enrichment,Adeno2_enrichment,Adeno3_enrichment,Adeno4_enrichment)
+Plano_tot <- list(Plano1_enrichment,Plano2_enrichment,Plano3_enrichment,Plano4_enrichment)
+SCLC_tot <- list(SCLC1_enrichment,SCLC2_enrichment,SCLC3_enrichment,SCLC4_enrichment)
+NSCLC_tot <- list(Adeno1_enrichment,Adeno2_enrichment,Adeno3_enrichment,Adeno4_enrichment,
+                  Plano1_enrichment,Plano2_enrichment,Plano3_enrichment,Plano4_enrichment)
+Adeno_tot_not1 <- list(Adeno2_enrichment,Adeno3_enrichment,Adeno4_enrichment)
+NSCLC_tot_unnormalized <- list(Adeno1_enrichment_unnormalized,Adeno2_enrichment_unnormalized,
+                               Adeno3_enrichment_unnormalized,Adeno4_enrichment_unnormalized,
+                               Plano1_enrichment_unnormalized, Plano2_enrichment_unnormalized,
+                               Plano2_enrichment_unnormalized, Plano3_enrichment_unnormalized)
+                               
 
 
 
