@@ -123,6 +123,7 @@ samples <- sapply(rownames(collect_df), FUN = function(x){
 })
 samples
 collect_df$samples <- samples
+collect_df
 
 x #df with samples as rows, genes as columns, but last column is called samples
 #indicating whether the sample is a PBMC or a NSCLC sample
