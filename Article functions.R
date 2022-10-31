@@ -67,6 +67,7 @@ x #Name on combined TPM file
 y #vector of names on samples
 RNA_TPM <- function(x,y){
   library(dplyr)
+  options(scipen=999)
   TPM <- read.table(x, header = T)
   df <- data.frame(SYMBOL = TPM$SYMBOL)
   for (i in 2:length(TPM)){
@@ -79,19 +80,29 @@ RNA_TPM <- function(x,y){
   AVENIO_genelist <- AVENIO_gr$SYMBOL
   TPM_AVENIO <- df %>% filter(SYMBOL %in% AVENIO_genelist)
   colnames(TPM_AVENIO) <- c("SYMBOL",y)
-  setwd("C:/Users/Christoffer/OneDrive/1PhD/RNA-seq/BGI/Data/Gene abundance files")
+  setwd("C:/Users/Christoffer/OneDrive/1PhD/RNA-seq/BGI/RNA-seq 10102022")
   return(TPM_AVENIO)
 }
-rna <- read.table("Combined TPM.txt", header = T)
-rna <- rna[order(-rna$HCC827),]
-rna
-setwd("C:/Users/Christoffer/OneDrive/1PhD/RNA-seq/BGI/Data/Gene abundance files")
-AVENIO_TPM <- RNA_TPM("Combined TPM.txt",c("log2.A549", "log2.HCC827", "log2.Clone3", "log2.Clone4"))
-setwd("C:/Users/Christoffer/OneDrive/1PhD/RNA-seq/Illumina RNA-seq/Alignment_1/20220604_034720/TPM")
-tissue_TPM <- RNA_TPM("join_TPM.txt", c("log2.Adeno3", "log2.Adeno4", "log2.Adeno1", "log2.Adeno2"))
-tissue_TPM
-adeno2 <- tissue_TPM %>% filter(log2.Adeno2 > 0)
-adeno2[order(adeno2$log2.Adeno2),]$SYMBOL
+setwd("C:/Users/Christoffer/OneDrive/1PhD/RNA-seq/BGI/RNA-seq 10102022")
+TPM_AVENIO <- RNA_TPM("Gene abundance 25102022.txt",c("log2_A549_R1",
+                                                      "log2_A549_R2",
+                                                      "log2_A549_R3",
+                                                      "log2_HCC827_R1",
+                                                      "log2_HCC827_R2",
+                                                      "log2_HCC827_R3",
+                                                      "log2_HCC827-MET_R1",
+                                                      "log2_HCC827-MET_R2",
+                                                      "log2_HCC827-MET_R3"))
+TPM
+####mean TPM of cell lines####
+x #data.frame returned by RNA_TPM()
+y #colname of cell line to gen the mean log2(TPM+1)
+
+RNA_mean <- function(x,y){
+    df <- x[grepl(y,colnames(x))]
+    return(data.frame(SYMBOL = x$SYMBOL,
+                      log2_TPM = rowMeans(df)))
+}
 
 
 ####Definition of the coverages in each gene of the AVENIO panel####
@@ -433,9 +444,9 @@ ChIPcorr_cell <- function(x,y,p,q,b = NULL,z = NULL){
     gg <- ggplot(data = df, aes(x = x, y = y))+
       geom_point(aes(colour=norm), size = 4)+
       scale_colour_gradient2(midpoint = 0, low="#ffa10c", mid ="grey", 
-                             high="#6a00fc", name = "Log2 difference", 
+                             high="#6a00fc", name = expression(log[2]("Difference")), 
                              limits=c(round(min(df$norm))-1,round(max(df$norm))+1))+
-      labs(title=paste("ChIP-seq comparison of", q, "and", p), 
+      labs(title=paste("Average ChIP-seq enrichment of", q, "and", p), 
            x = p, y=q)+
       theme_bw()+
       geom_smooth(method="lm", se=F, color = "black")+
@@ -465,10 +476,10 @@ ChIPcorr_cell <- function(x,y,p,q,b = NULL,z = NULL){
     gg <- ggplot(data = df, aes(x = x, y = y))+
       geom_point(aes(colour=norm), size = 4)+
       scale_colour_gradient2(midpoint = 0, low="#ffa10c", mid ="grey", 
-                             high="#6a00fc", name = "Log2 difference", 
+                             high="#6a00fc", name = expression(log[2]("difference")), 
                              limits=c(round(min(df$norm))-1,round(max(df$norm))+1))+
-      labs(title=paste("ChIP-seq comparison of", q, "and HCC827-MET"), 
-           x = "HCC827-MET", y=q)+
+      labs(title=paste("Average ChIP-seq enrichment of", q,"and", p), 
+           x = p, y=q)+
       theme_bw()+
       geom_smooth(method="lm", se=F, color = "black")+
       geom_label_repel(
@@ -499,26 +510,26 @@ ChIPcorr_cell <- function(x,y,p,q,b = NULL,z = NULL){
 ####Plot of enrichment relative to TSS####
 x #File with all Targets in AVENIO panel. Containing chromosome, start of target, end of target, gene SYMBOL
 # Gene start, Gene end, strand, mean position of target and relative distance of target from TSS
-y #List of gene symbols needed to be investigated
-z #name of Granges object returned by bam()
-e.score_distribution <- function(x,y,z){
+y #List of gene symbols for active genes
+z #List of gene symbols for inactive genes
+b #name of Granges object returned by bam()
+e.score_distribution <- function(x,y,z,b){
   library(GenomicAlignments)
   library(BiocParallel)
   library(dplyr)
   library(ggplot2)
   library(stringr)
   targets <- gr(x)
-  targets <- targets[targets$SYMBOL %in% y]
+  targets <- targets[targets$SYMBOL %in% c(y,z)]
   x1 <- read.table(x, header = T)
-  xx <- x1[(x1$SYMBOL %in% y),]
+  xx <- x1[(x1$SYMBOL %in% c(y,z)),]
   targets$length <- xx$end - xx$start
-  se_ChIP <- summarizeOverlaps(features = targets, reads = z, ignore.strand = T, mode = "Union")
-  
+  se_ChIP <- summarizeOverlaps(features = targets, reads = b, ignore.strand = T, mode = "Union")
   ChIP_reads <- data.frame(genes = targets$SYMBOL, 
                            readcounts = assays(se_ChIP)$counts[1:length(assays(se_ChIP)$counts)])
   ChIP_reads$coverage <- targets$length
   ChIP_reads <- ChIP_reads %>% filter(readcounts > 10)
-  len <- as.numeric(length(z))
+  len <- as.numeric(length(b))
   RPKM <- c()
   for (i in 1:length(ChIP_reads$genes)){
     RPKM[i] <- (ChIP_reads$readcounts[i]*1000*1000000)/(len*ChIP_reads$coverage[i])
@@ -529,7 +540,7 @@ e.score_distribution <- function(x,y,z){
     norms <- c()
     c <- ChIP_reads %>% filter(genes %in% unique(ChIP_reads$genes)[i])
     avg <- median(c$enrichment)
-    if (avg > 800) {
+    if (unique(ChIP_reads$genes)[i] %in% y) {
       activity <- "Active"
     }
     else {
@@ -572,21 +583,32 @@ e.score_distribution <- function(x,y,z){
     th
   return(gg)
 }
-
 e.score_distribution("Complete table of all targets.txt",
-                     c("NRAS", "RET", "KRAS", "BRCA2","TP53", "ERBB2", "BRCA1", "ALK", 
-                       "PDGFRA", "KIT", "APC", "ROS1", "EGFR", "MET", "BRAF"),
+                     c("NRAS", "KRAS", "BRCA2","TP53", "ERBB2", "BRCA1",
+                       "ALK", "APC", "EGFR", "MET", "BRAF"),
+                     c("KIT","PDGFRA", "ROS1", "RET"),
                      HCC827_bam)
-
 e.score_distribution("Complete table of all targets.txt",
-                     c("NRAS", "RET", "KRAS", "BRCA2","TP53", "ERBB2", "BRCA1", "ALK", 
-                       "PDGFRA", "KIT", "APC", "ROS1", "EGFR", "MET", "BRAF"),
-                     Clone3_bam)
+                     c("NRAS", "KRAS", "BRCA2","TP53", "ERBB2", "BRCA1"
+                       , "APC", "EGFR", "MET", "BRAF"),
+                     c("KIT","PDGFRA", "ROS1", "RET", "ALK"),
+                     A549_bam)
+e.score_distribution("Complete table of all targets.txt",
+                     c("NRAS", "KRAS", "BRCA2","TP53", "ERBB2", "BRCA1"
+                       , "APC", "EGFR", "MET", "BRAF"),
+                     c("KIT","PDGFRA", "ROS1", "RET", "ALK"),
+                     HCC827_MET_bam)
+mean_HCC827_TPM
+setwd("D:/Cell ChIP/Deduped")
+A549_bam <- bam("A549_R1_ChIP.bam", "A549_R1_ChIP.bam.bai")
+HCC827_bam <- bam("HCC827_R1_ChIP.bam", "HCC827_R1_ChIP.bam.bai")
+HCC827_MET_bam <- bam("HCC827-MET_R1_ChIP.bam", "HCC827-MET_R1_ChIP.bam.bai")
+
 setwd("C:/Users/Christoffer/OneDrive/1PhD/R files/Important excel and text documents")
 ####Comparison of ChIP-seq with RNA-seq on cell lines####
 x #data.frame of enrichment in ChIP sample returned by e.score()
-y #data.frame of log2(TPM+1) values from RNA-seq of the 197 AVENIO genes returned by RNA_TPM()
-z #Name of column to use in RNA_TPM()
+y #data.frame of mean log2(TPM+1) values from RNA-seq of the 197 AVENIO genes returned by ran_mean()
+z #name of cell
 r #Cutoff for active gene determined by RNA-seq
 b #optional: list of genes returned by badgene(), otherwise type NULL
 a #optional: TRUE if only active genes based on RNA should be analyzed, otherwise type FALSE
@@ -597,10 +619,9 @@ versus <- function(x,y,z,r,b = NULL,a = F,g = NULL){
   library(stringr)
   library(ggrepel)
   `%ni%` <- Negate(`%in%`)
-  y1 <- y[colnames(y) %in% c("SYMBOL",z)]
+  y1 <- y
   y1 <- y1 %>% filter(SYMBOL %in% x$genes)
   y1 <- y1[(match(x$genes, y1$SYMBOL)),]
-  cell <- paste(gsub("log2.", '',z))
   if (is.null(b)){
     y1 <- y1
     x1 <- x
@@ -645,13 +666,14 @@ versus <- function(x,y,z,r,b = NULL,a = F,g = NULL){
     geom_point(color="#ffa10c", size = 3)+
     theme_bw()+
     geom_smooth(aes(x=ChIP, y = RNA), method = "lm", se = F, color = "black")+
-    labs(title = paste("HCC827-MET RNA-seq correlation with ChIP-seq",tit), 
-         x = "ChIP (Enrichment)", y = "Log2(TPM+1)",
+    labs(title = paste(z,"RNA-seq correlation with ChIP-seq",tit), 
+         x = "Average ChIP (Enrichment)", y = expression(bold(paste("Average ",log[2]("TPM+1")))),
          subtitle = paste("Spearman's rho =", round(rhos,3), 
                           as.character(p), ", n =", length(df$ChIP)))+
     th
   return(gg)
 }
+
 
 #labs(title = paste(cell, " RNA-seq correlation with ChIP-seq for ",tit,t,"genes", sep = ""), 
 #x = "ChIP (Enrichment)", y = "RNA Log2(TPM+1)",
@@ -662,19 +684,17 @@ versus <- function(x,y,z,r,b = NULL,a = F,g = NULL){
 ####ROC data####
 
 x #data.frame of enrichment in ChIP sample returned by e.score()
-y #data.frame of log2(TPM+1) values from RNA-seq of the 197 AVENIO genes returned by RNA_TPM()
-z #Name of column to use in RNA_TPM()
+y #data.frame of log2(TPM+1) values from RNA-seq of the 197 AVENIO genes returned by mean_RNA()
 r #Cutoff for active gene determined by RNA-seq
 b #optional: list of genes returned by badgene(), otherwise type NULL
 
-get_ROC_data <- function(x,y,z,r,b = NULL){
+get_ROC_data <- function(x,y,r,b = NULL){
   library(dplyr)
   library(stringr)
   `%ni%` <- Negate(`%in%`)
-  y1 <- y[colnames(y) %in% c("SYMBOL",z)]
+  y1 <- y
   y1 <- y1 %>% filter(SYMBOL %in% x$genes)
   y1 <- y1[(match(x$genes, y1$SYMBOL)),]
-  cell <- paste(gsub("log2.", '',z))
   if (is.null(b)){
     y1 <- y1
     x1 <- x
@@ -687,8 +707,8 @@ get_ROC_data <- function(x,y,z,r,b = NULL){
   RNA_active <- y1 %>% filter(y1[,2] > r)
   ChIP_inactive <- x %>% filter(genes %in% RNA_inactive$SYMBOL)
   ChIP_active <- x %>% filter(genes %in% RNA_active$SYMBOL)
-  return(list(active = ChIP_active$enrichment,
-              inactive = ChIP_inactive$enrichment))
+  return(list(active = ChIP_active,
+              inactive = ChIP_inactive))
 }
 
 ####RNA FC plot####
@@ -1049,13 +1069,14 @@ venn(clone3_enrichment, HCC827_enrichment, TPM_AVENIO, "log2.HCC827", "log2.Clon
 ####Bar graph of ChIP compared to RNA####
 x #Enrichment data.frame return from e.score() for sample 1
 y #Enrichment data.frame return from e.score() for sample 2
-z #Name on TPM df
 p #Name on column in TPM df of sample 2
 q #Name on column in TPM df of sample 1
 b #optional: list of genes returned by badgene(). Default is NULL
 d #Cutoff of difference
 
-bar_overlap <- function(x,y,z,p,q, b = NULL, d){
+bar_overlap <- function(x,y,p,q, b = NULL, d){
+    or_wd <- getwd()
+  options(scipen=999)
   library(dplyr)
   library(ggplot2)
   library(ggpubr)
@@ -1100,11 +1121,14 @@ bar_overlap <- function(x,y,z,p,q, b = NULL, d){
   c <- res$coefficients[1,1]
   df$norm <- df$y-((df$x*a)+c)
   df <- df[order(df$norm),]
-  
-  z1 <- z[colnames(z) %in% c("SYMBOL",p,q)]
-  index1 <- c(1:length(z1))[colnames(z1) %in% p]
-  index2 <- c(1:length(z1))[colnames(z1) %in% q]
-  z1$FC <- z1[,index1]-z1[,index2]
+  setwd("C:/Users/Christoffer/OneDrive/1PhD/RNA-seq/BGI/RNA-seq 10102022")
+  TPM <- read.table("Gene abundance 25102022.txt", header = T)
+  TPM <- TPM[TPM$SYMBOL %in% df$genes,]
+  colnames(TPM)[8:10] <- c("HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")
+  z1 <- dif_gene_express(TPM,c(p,q))
+  z1$SYMBOL <- z1$gene
+  z1$FC <- z1$Log2FC
+  setwd(or_wd)
   xt <- gsub("log2.", '',p)
   yt <- gsub("log2.", '',q)
   if (is.null(b)){
@@ -1114,10 +1138,11 @@ bar_overlap <- function(x,y,z,p,q, b = NULL, d){
   else{
     z1 <- z1 %>% filter(SYMBOL %ni% b)
     t <- "sorted "
-  } 
+  }
   rna_df_high <- z1 %>% filter(FC > d)
   ChIP_df_high <- df %>% filter(norm > 0) %>% filter(genes %in% rna_df_high$SYMBOL)
   rna_df_low <- z1 %>% filter(FC < -d)
+  return(rna_df_low)
   ChIP_df_low <- df %>% filter(norm < 0) %>% filter(genes %in% rna_df_low$SYMBOL)
   ChIP_negative_high <- rna_df_high %>% filter(SYMBOL %ni% ChIP_df_high$genes)
   ChIP_negative_low <- rna_df_low %>% filter(SYMBOL %ni% ChIP_df_low$genes)
@@ -1153,10 +1178,11 @@ bar_overlap <- function(x,y,z,p,q, b = NULL, d){
     theme(axis.text.x = element_text(size = 14, face = "bold", colour = "black"))
   return(gg)
 }
-bar_overlap(A549_enrichment, HCC827_enrichment, TPM_AVENIO, "log2.HCC827", "log2.A549",
+bar_overlap(mean_A549_enrichment, mean_HCC827_enrichment, "HCC827_", "A549_",
             bad, d = 1)
-bar_overlap(clone3_enrichment, HCC827_enrichment, TPM_AVENIO, "log2.HCC827", "log2.Clone3",
+bar_overlap(mean_HCC827_MET_enrichment, mean_HCC827_enrichment, "HCC827_", "HCC827-MET_",
             bad, d = 1)
+TPM_AVENIO
 
 ####Sample metrics####
 x #Name of BAM file
@@ -1223,22 +1249,28 @@ fragment_length <- function(x,y,z,p){
     th
   return(gg)
 }
-
+install.packages("matrixStats")
 ####TPM of 15 genes####
 x #data.frame of log2(TPM+1) values from RNA-seq of the 197 AVENIO genes returned by RNA_TPM()
-RNA_HCC827 <- function(x){
+x #name of colnames to be plotted
+RNA_plot_genes <- function(x, y){
   library(ggplot2)
   library(dplyr)
   library(tidyverse)
-  x1 <- x %>% dplyr::select(SYMBOL, log2.HCC827) %>% 
+  library(matrixStats)
+  x1 <- x[c("SYMBOL", y)] %>% 
     filter(SYMBOL %in% c("NRAS", "RET", "KRAS",
                          "BRCA2","TP53", "ERBB2",
                          "BRCA1", "ALK","PDGFRA",
                          "KIT", "APC", "ROS1",
                          "EGFR", "MET", "BRAF"))
+  
   activity <- c()
+  sd <- c()
+  x1$means <- rowMeans(x1[,-1])
+  x1$sd <- rowSds(as.matrix(x1[,-1]))
   for (i in 1:length(x1$SYMBOL)){
-    if(x1$log2.HCC827[i]>1){
+    if(x1$means[i]>1){
       activity[i] <- "High"
     }
     else{
@@ -1246,10 +1278,11 @@ RNA_HCC827 <- function(x){
     }
   }
   x1$activity <- activity
-  x1 <- x1[order(x1$log2.HCC827),]
+  x1 <- x1[order(x1$means),]
   gg <- ggplot(data = x1, aes(x = fct_inorder(SYMBOL), 
-                              y = log2.HCC827, fill = activity))+
+                              y = means, fill = activity))+
     geom_bar(stat = "identity")+
+    geom_errorbar(aes(ymin=means-sd, ymax=means+sd), width=.3)+
     labs(x = "", y = "Log2(TPM+1)")+
     scale_fill_manual("Gene activity", values = c("green4", "firebrick"))+
     theme_bw()+
@@ -1257,11 +1290,189 @@ RNA_HCC827 <- function(x){
     th
   return(gg)
 }
+setwd("C:/Users/Christoffer/OneDrive/1PhD/RNA-seq/BGI/RNA-seq 10102022")
+RNA_plot_genes(RNA_TPM("Gene abundance 25102022.txt", c("A549_R1", "A549_R2", "A549_R3",
+                                                    "HCC827_R1", "HCC827_R2", "HCC827_R3",
+                                                    "HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")),
+               c("HCC827_R1", "HCC827_R2", "HCC827_R3"))
+RNA_plot_genes(RNA_TPM("Gene abundance 25102022.txt", c("A549_R1", "A549_R2", "A549_R3",
+                                                        "HCC827_R1", "HCC827_R2", "HCC827_R3",
+                                                        "HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")),
+               c("A549_R1", "A549_R2", "A549_R3"))
+RNA_plot_genes(RNA_TPM("Gene abundance 25102022.txt", c("A549_R1", "A549_R2", "A549_R3",
+                                                        "HCC827_R1", "HCC827_R2", "HCC827_R3",
+                                                        "HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")),
+               c("HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3"))
 
+####UMAP RNA-seq####
+umap_RNA_seq <- function(x,y){
+    set.seed(8)
+    library(dplyr)
+    library(parameters)
+    library(ggplot2)
+    library(umap)
+    df <- x
+    group1_df <- df[grepl(y[1],colnames(df))]
+    group2_df <- df[grepl(y[2],colnames(df))]
+    group3_df <- df[grepl(y[3],colnames(df))]
+    rownames(group1_df) <- df$SYMBOL
+    rownames(group2_df) <- df$SYMBOL
+    rownames(group3_df) <- df$SYMBOL
+    group1_t <- as.data.frame(t(group1_df))
+    group2_t <- as.data.frame(t(group2_df))
+    group3_t <- as.data.frame(t(group3_df))
+    combined_df <- rbind(group1_t,group2_t, group3_t)
+    umap_res <- umap(combined_df, n_neighbors = 5)
+    umap_df <- as.data.frame(umap_res$layout)
+    umap_df[,3] <- c(rep(strsplit(y[1],"_")[[1]],3),
+                     rep(strsplit(y[2],"_")[[1]],3),
+                     rep(strsplit(y[3],"_")[[1]],3))
+    gg <- ggplot(data = umap_df, aes(x = V1, y = V2, color = V3))+
+        geom_point(size = 5)+
+        labs(title = "RNA-seq of cell lines",
+             x = "UMAP-1", y = "UMAP-2")+
+        scale_color_manual(name = "Cell line",
+                           values = c("firebrick","#6a00fc","#ffa10c"))+
+        theme_bw()+
+        th
+    return(gg)
+}
+gg_umap_RNA <- umap_RNA_seq(TPM,c("A549_", "HCC827_", "HCC827-MET_"))
+####Volcano RNA-seq####
+volcano_dif <- function(x,y){
+    library(ggplot2)
+    library(ggrepel)
+    p <- -log10(x$q.value)
+    x$Log10p <- p
+    x <- x %>% dplyr::filter(!is.na(q.value))
+    x <- x %>% dplyr::filter(gene %ni% bad)
+    which_m <- apply(x, MARGIN =1, FUN = function(z){
+        g1 <- as.numeric(z[2])
+        g2 <- as.numeric(z[4])
+        return(log2(max(g1,g2)+1))
+    })
+    x$max_log2_TPM <- which_m
+    group1_high <- length(x[x$Log2FC>0,]$Log2FC)
+    group2_high <- length(x[x$Log2FC<0,]$Log2FC)
+    gg <- ggplot(data = x, aes(x = Log2FC, y = Log10p,
+                               size = max_log2_TPM, fill = Log2FC))+
+        geom_point(shape = 21,
+                   stroke = 0.5,)+
+        scale_size_continuous(name = expression(log[2]("TPM+1")),
+                              limits = c(0,15))+
+        scale_fill_gradient2(low = "#ffa10c", high = "#6a00fc",
+                             mid = "grey",
+                             name = expression(log[2]("FC")))+
+        guides(colour = guide_colourbar(order = 1),
+               size = guide_legend(order = 2))+
+        xlab(expression(log[2]("FC")))+
+        ylab(expression(paste("-",log[10]("q-value"), sep = "")))+
+        labs(title = y)+
+        geom_vline(xintercept = c(0,-1,1),
+                   linetype = c("solid","dashed","dashed"),
+                   colour = c("black", "black", "black"),
+                   size = c(1,1,1))+
+        geom_label(x = 4, y = 0, label = paste(strsplit(colnames(x)[2],"_")[[1]][3]),
+                   color = "#6a00fc", label.size = 0, size = 5,
+                   fill="white")+
+        geom_label(x = -4, y = 0, label = paste(strsplit(colnames(x)[4],"_")[[1]][3]),
+                   color = "#ffa10c", label.size = 0, size = 5,
+                   fill="white")+
+        theme_bw(base_size = 17)+
+        scale_x_continuous(breaks = seq(-10, 10, by = 2), limits = c(-10,10))+
+        geom_label_repel(
+            aes(label=ifelse(Log2FC > 1, as.character(gene),"")),
+            segment.color="#6a00fc",
+            color="#6a00fc",
+            nudge_x = 1,
+            label.size = NA,
+            size = 2.5,
+            fill = alpha(c("white"),0),
+            parse = F,
+            max.overlaps = 100)+
+        geom_label_repel(
+            aes(label=ifelse(Log2FC < -1, as.character(gene),"")),
+            segment.color="#ffa10c",
+            color="#ffa10c",
+            nudge_x = -1,
+            label.size = NA,
+            size = 2.5,
+            fill = alpha(c("white"),0),
+            parse = F,
+            max.overlaps = 100)+
+        th
+    return(gg)
+}
+gg1 <- volcano_dif(HCC827_vs_A549, "HCC827 compared to A549")
+####diff gene expression RNA_seq####
+x #Data.frame with TPM data
+y #vector of length 2 with root column names to be analyzed
+dif_gene_express <- function(x,y){
+    library(dplyr)
+    library(parameters)
+    df <- x
+    group1_df <- df[grepl(y[1],colnames(df))]
+    group2_df <- df[grepl(y[2],colnames(df))]
+    rownames(group1_df) <- df$SYMBOL
+    rownames(group2_df) <- df$SYMBOL
+    group1_t <- as.data.frame(t(group1_df))
+    group2_t <- as.data.frame(t(group2_df))
+    p <- c()
+    group1 <- c()
+    group2 <- c()
+    se_group1 <- c()
+    se_group2 <- c()
+    for (i in 1:(length(group1_t))){
+        g1 <- group1_t[,i]
+        g2 <- group2_t[,i]
+        se_group1[i] <- parameters::standard_error(g1)
+        se_group2[i] <- parameters::standard_error(g2)
+        p[i] <- t.test(g2,g1, paired = F, alternative = "two.sided")$p.value
+        group1[i] <- mean(g1)
+        group2[i] <- mean(g2)
+    }
+    q <- p.adjust(p, method = "fdr")
+    kk <- data.frame(gene = colnames(group1_t),
+                     group1_name = group1,
+                     group1_se = se_group1,
+                     group2_name = group2,
+                     group_2_se = se_group2,
+                     p.value = p,
+                     q.value = q,
+                     Log2FC = log2(group1+1)-log2(group2+1))
+    colnames(kk)[2] <- paste("mean_TPM_",strsplit(y[1],"_")[[1]], sep = "")
+    colnames(kk)[3] <- paste("se_TPM_",strsplit(y[1],"_")[[1]], sep = "")
+    colnames(kk)[4] <- paste("mean_TPM_",strsplit(y[2],"_")[[1]], sep = "")
+    colnames(kk)[5] <- paste("se_TPM_",strsplit(y[2],"_")[[1]], sep = "")
+    kk <- kk[order(-abs(kk$Log2FC)),]
+    return(kk)
+}
+HCC827_vs_A549 <- dif_gene_express(TPM_AVENIO, c("HCC827_", "A549_"))
+HCC827_vs_HCC827_MET <- dif_gene_express(TPM_AVENIO, c("HCC827_", "HCC827-MET_"))
+
+####UMAP ChIP-seq####
+x #transposed and bound samples returned by bind_samples()
+umap_ChIP_seq <- function(x){
+    set.seed(8)
+    df <- x %>% select(-groups)
+    umap_res <- umap(df, n_neighbors = 5)
+    umap_df <- as.data.frame(umap_res$layout)
+    umap_df[,3] <- x$groups
+    gg <- ggplot(data = umap_df, aes(x = V1, y = V2, color = V3))+
+        geom_point(size = 5)+
+        labs(title = "ChIP-seq of cell lines",
+             x = "UMAP-1", y = "UMAP-2")+
+        scale_color_manual(name = "Cell line",
+                           values = c("firebrick","#6a00fc","#ffa10c"))+
+        theme_bw()+
+        th
+    return(gg)
+}
+umap_ChIP_seq(bound_cell_ChIP)
 
 ####Data extraction and plots####
 
-
+library(ggplot2)
 th <- theme(
   legend.position = 'right',
   legend.background = element_rect(),
@@ -1283,6 +1494,36 @@ setwd("D:/Cell ChIP/Deduped")
 A549_ChIP <- gene_count("A549_ChIP.bam", grs)
 HCC827_ChIP <- gene_count("HCC827ChIP.bam", grs)
 Clone3_ChIP <- gene_count("HCC827_ER_klon3_ChIP.bam", grs)
+
+A549_ChIP_R1 <- gene_count("A549_R1_ChIP.bam", grs)
+A549_ChIP_R2 <- gene_count("A549_R2_ChIP.bam", grs)
+A549_ChIP_R3 <- gene_count("A549_R3_ChIP.bam", grs)
+HCC827_ChIP_R1 <- gene_count("HCC827_R1_ChIP.bam", grs)
+HCC827_ChIP_R2 <- gene_count("HCC827_R2_ChIP.bam", grs)
+HCC827_ChIP_R3 <- gene_count("HCC827_R3_ChIP.bam", grs)
+HCC827_MET_ChIP_R1 <- gene_count("HCC827-MET_R1_ChIP.bam", grs)
+HCC827_MET_ChIP_R2 <- gene_count("HCC827-MET_R2_ChIP.bam", grs)
+HCC827_MET_ChIP_R3 <- gene_count("HCC827-MET_R3_ChIP.bam", grs)
+
+setwd("C:/Users/Christoffer/OneDrive/1PhD/R files/Important excel and text documents")
+metrics("A549_R1_ChIP.bam", "AVENIO_genes.txt", "Coverage of AVENIO genes.txt",
+        "D:/Cell ChIP/Deduped")
+metrics("A549_R2_ChIP.bam", "AVENIO_genes.txt", "Coverage of AVENIO genes.txt",
+        "D:/Cell ChIP/Deduped")
+metrics("A549_R3_ChIP.bam", "AVENIO_genes.txt", "Coverage of AVENIO genes.txt",
+        "D:/Cell ChIP/Deduped")
+metrics("HCC827_R1_ChIP.bam", "AVENIO_genes.txt", "Coverage of AVENIO genes.txt",
+        "D:/Cell ChIP/Deduped")
+metrics("HCC827_R2_ChIP.bam", "AVENIO_genes.txt", "Coverage of AVENIO genes.txt",
+        "D:/Cell ChIP/Deduped")
+metrics("HCC827_R3_ChIP.bam", "AVENIO_genes.txt", "Coverage of AVENIO genes.txt",
+        "D:/Cell ChIP/Deduped")
+metrics("HCC827-MET_R1_ChIP.bam", "AVENIO_genes.txt", "Coverage of AVENIO genes.txt",
+        "D:/Cell ChIP/Deduped")
+metrics("HCC827-MET_R2_ChIP.bam", "AVENIO_genes.txt", "Coverage of AVENIO genes.txt",
+        "D:/Cell ChIP/Deduped")
+metrics("HCC827-MET_R3_ChIP.bam", "AVENIO_genes.txt", "Coverage of AVENIO genes.txt",
+        "D:/Cell ChIP/Deduped")
 
 setwd("D:/Cell input/Deduped")
 A549_input <- gene_count("A549_input.bam", grs)
@@ -1313,9 +1554,56 @@ A549_enrichment <- e.score(A549_ChIP, "Coverage of AVENIO genes.txt",gr("AVENIO_
 HCC827_enrichment <- e.score(HCC827_ChIP, "Coverage of AVENIO genes.txt",gr("AVENIO_genes.txt"))
 clone3_enrichment <- e.score(Clone3_ChIP, "Coverage of AVENIO genes.txt",gr("AVENIO_genes.txt"))
 
+A549_R1_enrichment <- e.score(A549_ChIP_R1, "Coverage of AVENIO genes.txt", gr("AVENIO_genes.txt"))
+A549_R2_enrichment <- e.score(A549_ChIP_R2, "Coverage of AVENIO genes.txt", gr("AVENIO_genes.txt"))
+A549_R3_enrichment <- e.score(A549_ChIP_R3, "Coverage of AVENIO genes.txt", gr("AVENIO_genes.txt"))
+HCC827_R1_enrichment <- e.score(HCC827_ChIP_R1, "Coverage of AVENIO genes.txt", gr("AVENIO_genes.txt"))
+HCC827_R2_enrichment <- e.score(HCC827_ChIP_R2, "Coverage of AVENIO genes.txt", gr("AVENIO_genes.txt"))
+HCC827_R3_enrichment <- e.score(HCC827_ChIP_R3, "Coverage of AVENIO genes.txt", gr("AVENIO_genes.txt"))
+HCC827_MET_R1_enrichment <- e.score(HCC827_MET_ChIP_R1, "Coverage of AVENIO genes.txt", gr("AVENIO_genes.txt"))
+HCC827_MET_R2_enrichment <- e.score(HCC827_MET_ChIP_R2, "Coverage of AVENIO genes.txt", gr("AVENIO_genes.txt"))
+HCC827_MET_R3_enrichment <- e.score(HCC827_MET_ChIP_R3, "Coverage of AVENIO genes.txt", gr("AVENIO_genes.txt"))
+bound_cell_ChIP <- bind_samples(list(A549_R1_enrichment,
+                                     A549_R2_enrichment,
+                                     A549_R3_enrichment,
+                                     HCC827_R1_enrichment,
+                                     HCC827_R2_enrichment,
+                                     HCC827_R3_enrichment,
+                                     HCC827_MET_R1_enrichment,
+                                     HCC827_MET_R2_enrichment,
+                                     HCC827_MET_R3_enrichment),
+                                c("A549_R1", "A549_R2", "A549_R3",
+                                  "HCC827_R1", "HCC827_R2", "HCC827_R3",
+                                  "HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3"),
+                                c(rep("A549", 3), rep("HCC827", 3), rep("HCC827-MET",3)))
+
+mean_A549_enrichment <- average_enrichment(list(A549_R1_enrichment, 
+                                                A549_R2_enrichment, 
+                                                A549_R3_enrichment))
+mean_HCC827_enrichment <- average_enrichment(list(HCC827_R1_enrichment, 
+                                                  HCC827_R2_enrichment, 
+                                                  HCC827_R3_enrichment))
+mean_HCC827_MET_enrichment <- average_enrichment(list(HCC827_MET_R1_enrichment, 
+                                                      HCC827_MET_R2_enrichment, 
+                                                      HCC827_MET_R3_enrichment))
+mean_A549_enrichment
+mean_HCC827_enrichment
+mean_HCC827_MET_enrichment
+
 gg_enrichment(A549_enrichment, "A549 H3K36me3 ChIP enrichment")
 gg_enrichment(HCC827_enrichment, "HCC827 H3K36me3 ChIP enrichment")
 gg_enrichment(clone3_enrichment, "Clone3 H3K36me3 ChIP enrichment")
+
+gg_enrichment(A549_R1_enrichment, "A549 R1 H3K36me3 ChIP enrichment", bad)
+gg_enrichment(A549_R2_enrichment, "A549 R2 H3K36me3 ChIP enrichment", bad)
+gg_enrichment(A549_R3_enrichment, "A549 R3 H3K36me3 ChIP enrichment", bad)
+gg_enrichment(HCC827_R1_enrichment, "HCC827 R1 H3K36me3 ChIP enrichment", bad)
+gg_enrichment(HCC827_R2_enrichment, "HCC827 R2 H3K36me3 ChIP enrichment", bad)
+gg_enrichment(HCC827_R3_enrichment, "HCC827 R3 H3K36me3 ChIP enrichment", bad)
+gg_enrichment(HCC827_MET_R1_enrichment, "HCC827-MET R1 H3K36me3 ChIP enrichment", bad)
+gg_enrichment(HCC827_MET_R2_enrichment, "HCC827-MET R2 H3K36me3 ChIP enrichment", bad)
+gg_enrichment(HCC827_MET_R3_enrichment, "HCC827-MET R3 H3K36me3 ChIP enrichment", bad)
+
 
 bad <- badgene("Complete table of all targets.txt",25)
 
@@ -1323,46 +1611,61 @@ gg_enrichment(A549_enrichment, "A549 H3K36me3 ChIP enrichment", bad)
 gg_enrichment(HCC827_enrichment, "HCC827 H3K36me3 ChIP enrichment", bad)
 gg_enrichment(clone3_enrichment, "Clone3 H3K36me3 ChIP enrichment", bad)
 
-setwd("C:/Users/Christoffer/OneDrive/1PhD/RNA-seq/BGI/Data/Gene abundance files")
-TPM_AVENIO <- RNA_TPM("Combined TPM.txt",c("log2.A549", "log2.HCC827", "log2.Clone3", "log2.Clone4"))
+setwd("C:/Users/Christoffer/OneDrive/1PhD/RNA-seq/BGI/RNA-seq 10102022")
+TPM_AVENIO <- RNA_TPM("Gene abundance 25102022.txt",c("log2_A549_R1",
+                                                      "log2_A549_R2",
+                                                      "log2_A549_R3",
+                                                      "log2_HCC827_R1",
+                                                      "log2_HCC827_R2",
+                                                      "log2_HCC827_R3",
+                                                      "log2_HCC827-MET_R1",
+                                                      "log2_HCC827-MET_R2",
+                                                      "log2_HCC827-MET_R3"))
 
 TPM_AVENIO
+TPM <- read.table("Gene abundance 25102022.txt", header = T)
+colnames(TPM_AVENIO)[8:10] <- c("HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")
 
-versus(A549_enrichment, TPM_AVENIO, "log2.A549", 0.2)
-versus(A549_enrichment, TPM_AVENIO, "log2.A549", 0.2, a = T,)
-versus(A549_enrichment, TPM_AVENIO, "log2.A549", 0.2, bad, T)
-versus(A549_enrichment, TPM_AVENIO, "log2.A549", 0.2, bad)
+HCC827_vs_A549 <- HCC827_vs_A549 %>% dplyr::filter(gene %ni% bad)
+HCC827_vs_HCC827_MET <- HCC827_vs_HCC827_MET %>% dplyr::filter(gene %ni% bad)
+HCC827_vs_A549 <- dif_gene_express(TPM_AVENIO, c("HCC827_", "A549_"))
+HCC827_vs_HCC827_MET <- dif_gene_express(TPM_AVENIO, c("HCC827_", "HCC827-MET_"))
+volcano_dif(HCC827_vs_A549, "HCC827 compared to A549")
+volcano_dif(HCC827_vs_HCC827_MET, "HCC827 compared to HCC827-MET")
+umap_RNA_seq(TPM,c("A549_", "HCC827_", "HCC827-MET_"))
 
-versus(HCC827_enrichment, TPM_AVENIO, "log2.HCC827", 0.2, g = "EGFR")
-versus(HCC827_enrichment, TPM_AVENIO, "log2.HCC827", 0.2, a = T,g = "EGFR")
-versus(HCC827_enrichment, TPM_AVENIO, "log2.HCC827", 0.2, bad, T, g = "EGFR")
-versus(HCC827_enrichment, TPM_AVENIO, "log2.HCC827", 0.2, bad, g = "EGFR")
+mean_A549_TPM <- RNA_mean(TPM_AVENIO, "log2_A549_")
+mean_HCC827_TPM <- RNA_mean(TPM_AVENIO, "log2_HCC827_")
+mean_HCC827_MET_TPM <- RNA_mean(TPM_AVENIO, "log2_HCC827-MET_")
 
+mean_A549_TPM
+mean_HCC827_MET_TPM
+mean_HCC827_TPM
 
-versus(HCC827_enrichment, TPM_AVENIO, "log2.HCC827", 0.5, g = "EGFR")
-versus(HCC827_enrichment, TPM_AVENIO, "log2.HCC827", 0.5, a = T,g = "EGFR")
-versus(HCC827_enrichment, TPM_AVENIO, "log2.HCC827", 0.5, bad, T, g = "EGFR")
-versus(HCC827_enrichment, TPM_AVENIO, "log2.HCC827", 0.5, bad, g = "EGFR")
+versus(mean_A549_enrichment, mean_A549_TPM, "A549", 0.2)
+versus(mean_A549_enrichment, mean_A549_TPM, "A549", 0.2, a = T,)
+versus(mean_A549_enrichment, mean_A549_TPM, "A549", 0.2, bad, T)
+versus(mean_A549_enrichment, mean_A549_TPM, "A549", 0.2, bad)
 
-versus(clone3_enrichment, TPM_AVENIO, "log2.Clone3", 0.2, g = c("EGFR", "MET"))
-versus(clone3_enrichment, TPM_AVENIO, "log2.Clone3", 0.2, a = T, g = c("EGFR", "MET"))
-versus(clone3_enrichment, TPM_AVENIO, "log2.Clone3", 0.2, bad, a = T, g = c("EGFR", "MET"))
-versus(clone3_enrichment, TPM_AVENIO, "log2.Clone3", 0.2, bad, g = c("EGFR", "MET"))
+versus(mean_HCC827_enrichment, mean_HCC827_TPM, "HCC827", 0.2, "EGFR")
+versus(mean_HCC827_enrichment, mean_HCC827_TPM, "HCC827", 0.2, a = T,g = "EGFR")
+versus(mean_HCC827_enrichment, mean_HCC827_TPM, "HCC827", 0.2, bad, T, g = "EGFR")
+versus(mean_HCC827_enrichment, mean_HCC827_TPM, "HCC827", 0.2, bad, g = "EGFR")
 
+versus(mean_HCC827_MET_enrichment, mean_HCC827_MET_TPM, "HCC827-MET", 0.2, g = c("EGFR", "MET"))
+versus(mean_HCC827_MET_enrichment, mean_HCC827_MET_TPM, "HCC827-MET", 0.2, a = T, g = c("EGFR", "MET"))
+versus(mean_HCC827_MET_enrichment, mean_HCC827_MET_TPM, "HCC827-MET", 0.2, bad, a = T, g = c("EGFR", "MET"))
+versus(mean_HCC827_MET_enrichment, mean_HCC827_MET_TPM, "HCC827-MET", 0.2, bad, g = c("EGFR", "MET"))
 
+ChIPcorr_cell(mean_A549_enrichment, mean_HCC827_enrichment, "A549", "HCC827",bad)
+ChIPcorr_cell(mean_A549_enrichment, mean_HCC827_enrichment, "A549", "HCC827")
+ChIPcorr_cell(mean_A549_enrichment, mean_HCC827_enrichment, "A549", "HCC827",bad, z = 1)
+ChIPcorr_cell(mean_A549_enrichment, mean_HCC827_enrichment, "A549", "HCC827", z = 1)
 
-FCplot("log2.HCC827", "log2.A549", TPM_AVENIO, bad)
-FCplot("log2.HCC827", "log2.Clone3", TPM_AVENIO, bad)
-FCplot("log2.Clone3", "log2.A549", TPM_AVENIO, bad)
-
-ChIPcorr_cell(A549_enrichment, HCC827_enrichment, "A549", "HCC827",bad)
-ChIPcorr_cell(A549_enrichment, HCC827_enrichment, "A549", "HCC827")
-ChIPcorr_cell(A549_enrichment, HCC827_enrichment, "A549", "HCC827",bad, 1)
-ChIPcorr_cell(A549_enrichment, HCC827_enrichment, "A549", "HCC827", z = 1)
-ChIPcorr_cell(clone3_enrichment,HCC827_enrichment, "Clone3", "HCC827", z = 1)
-ChIPcorr_cell(clone3_enrichment,HCC827_enrichment, "Clone3", "HCC827",bad, 1)
-ChIPcorr_cell(clone3_enrichment,HCC827_enrichment, "Clone3", "HCC827")
-ChIPcorr_cell(clone3_enrichment,HCC827_enrichment, "Clone3", "HCC827",bad)
+ChIPcorr_cell(mean_HCC827_MET_enrichment, mean_HCC827_enrichment, "HCC827-MET", "HCC827",bad)
+ChIPcorr_cell(mean_HCC827_MET_enrichment, mean_HCC827_enrichment, "HCC827-MET", "HCC827")
+ChIPcorr_cell(mean_HCC827_MET_enrichment, mean_HCC827_enrichment, "HCC827-MET", "HCC827",bad, z = 1)
+ChIPcorr_cell(mean_HCC827_MET_enrichment, mean_HCC827_enrichment, "HCC827-MET", "HCC827", z = 1)
 
 
 venn(A549_enrichment, HCC827_enrichment, TPM_AVENIO, "log2.HCC827", "log2.A549",

@@ -1,19 +1,9 @@
 setwd("C:/Users/Christoffer/OneDrive/1PhD/RNA-seq/BGI/RNA-seq 10102022")
 library(dplyr)
 TPM <- read.table("Gene abundance 25102022.txt", header = T)
-TPM_AVENIO <- TPM %>% filter(SYMBOL %in% grs$SYMBOL)
-colnames(TPM_AVENIO)[8:10] <- c("HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")
+colnames(TPM)[8:10] <- c("HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")
 setwd("C:/Users/Christoffer/OneDrive/1PhD/RNA-seq/BGI/Data/Gene abundance files")
-TPM_old <- read.table("Combined TPM.txt", header = T)
-colnames(TPM_old) <- c("SYMBOL", "A549_R4", "HCC827_R4", "HCC827-MET_R4", "HCC827-EMT_R1")
-TPM_old
-TPM_n4 <- TPM_old %>% 
-    dplyr::select(-"HCC827-EMT_R1") %>% 
-    inner_join(TPM, by = "SYMBOL")
-TPM_n4 <- TPM_n4[,c("A549_R1", "A549_R2", "A549_R3", "A549_R4",
-                    "HCC827_R1", "HCC827_R2", "HCC827_R3", "HCC827_R4",
-                    "HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3", "HCC827-MET_R4")]
-TPM_n4
+
 x #Data.frame with TPM data
 y #vector of length 2 with root column names to be analyzed
 dif_gene_express <- function(x,y){
@@ -56,12 +46,15 @@ dif_gene_express <- function(x,y){
     kk <- kk[order(-abs(kk$Log2FC)),]
     return(kk)
 }
-HCC827_vs_A549 <- dif_gene_express(TPM_AVENIO, c("HCC827_", "A549_"))
-HCC827_vs_HCC827_MET <- dif_gene_express(TPM_AVENIO, c("HCC827_", "HCC827-MET_"))
+TPM <- read.table("Gene abundance 25102022.txt", header = T)
+TPM_reduced <- TPM[TPM$SYMBOL %in% grs$SYMBOL,]
+colnames(TPM_reduced)[8:10] <- c("HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")
+HCC827_vs_A549 <- dif_gene_express(TPM_reduced, c("HCC827_", "A549_"))
+HCC827_vs_HCC827_MET <- dif_gene_express(TPM_reduced, c("HCC827_", "HCC827-MET_"))
 
 HCC827_vs_A549 <- HCC827_vs_A549 %>% dplyr::filter(gene %ni% bad)
 HCC827_vs_HCC827_MET <- HCC827_vs_HCC827_MET %>% dplyr::filter(gene %ni% bad)
-
+HCC827_vs_HCC827_MET
 volcano_dif <- function(x,y){
     library(ggplot2)
     library(ggrepel)
@@ -144,7 +137,7 @@ ggsave(filename = "figure 2 HCC827-MET vs. HCC827.png",
        dpi = 1200,
        device = "png")
 
-library(umap)
+
 nrow(TPM) 
 colnames(TPM)[8:10] <- c("HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")
 umap_RNA_seq <- function(x,y){
@@ -152,6 +145,7 @@ umap_RNA_seq <- function(x,y){
     library(dplyr)
     library(parameters)
     library(ggplot2)
+    library(umap)
     df <- x
     group1_df <- df[grepl(y[1],colnames(df))]
     group2_df <- df[grepl(y[2],colnames(df))]
@@ -186,3 +180,4 @@ ggsave(filename = "figure 2 UMAP RNA-seq.png",
        path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables",
        dpi = 1200,
        device = "png")
+
