@@ -83,16 +83,7 @@ RNA_TPM <- function(x,y){
   setwd("C:/Users/Christoffer/OneDrive/1PhD/RNA-seq/BGI/RNA-seq 10102022")
   return(TPM_AVENIO)
 }
-setwd("C:/Users/Christoffer/OneDrive/1PhD/RNA-seq/BGI/RNA-seq 10102022")
-TPM_AVENIO <- RNA_TPM("Gene abundance 25102022.txt",c("log2_A549_R1",
-                                                      "log2_A549_R2",
-                                                      "log2_A549_R3",
-                                                      "log2_HCC827_R1",
-                                                      "log2_HCC827_R2",
-                                                      "log2_HCC827_R3",
-                                                      "log2_HCC827-MET_R1",
-                                                      "log2_HCC827-MET_R2",
-                                                      "log2_HCC827-MET_R3"))
+
 ####mean TPM of cell lines####
 x #data.frame returned by RNA_TPM()
 y #colname of cell line to gen the mean log2(TPM+1)
@@ -631,19 +622,21 @@ versus <- function(x,y,z,r,b = NULL,a = F,g = NULL){
     x1 <- x1 %>% filter(genes %ni% g)
   }
   if (a == TRUE){
-    y2 <- y1 %>% filter(y1[,2] > r)
-    x2 <- x1[match(y2$SYMBOL,x1$genes),]
-    y2 <- y2[(match(x2$genes, y2$SYMBOL)),]
-    df <- data.frame(genes = x2$genes, ChIP = x2$enrichment, RNA = y2[,2])
-    tit <-"for active genes"
+    y1 <- y1 %>% filter(SYMBOL %in% x1$genes)
+    y1 <- y1[(match(x1$genes, y1$SYMBOL)),]
+    df <- data.frame(genes = x1$genes, ChIP = x1$enrichment, RNA = y1[,2])
+    df <- df %>% mutate(status = ifelse(RNA > r,"TRUE", "FALSE"))
+    df <- na.omit(df)
+    tit <- "for active genes"
   }
   else{
     y1 <- y1 %>% filter(SYMBOL %in% x1$genes)
     y1 <- y1[(match(x1$genes, y1$SYMBOL)),]
     df <- data.frame(genes = x1$genes, ChIP = x1$enrichment, RNA = y1[,2])
+    df <- na.omit(df)
     tit <- "for all genes"
   }
-  res <- cor.test(df$RNA, df$ChIP, method = "spearman")
+  res <- cor.test(df$RNA, log2(df$ChIP), method = "spearman")
   p_values <- res$p.value
   if (p_values < 0.0001){
     p <- ", P < 0.0001"
@@ -652,15 +645,39 @@ versus <- function(x,y,z,r,b = NULL,a = F,g = NULL){
     p <- paste(", P =", p_values)
   }
   rhos <- as.numeric(res$estimate)
-  gg <- ggplot(df, aes(x = ChIP, y = RNA))+
-    geom_point(color="#ffa10c", size = 3)+
-    theme_bw()+
-    geom_smooth(aes(x=ChIP, y = RNA), method = "lm", se = F, color = "black")+
-    labs(title = paste(z,"RNA-seq correlation with ChIP-seq",tit), 
-         x = "Average ChIP (Enrichment)", y = expression(bold(paste("Average ",log[2]("TPM+1")))),
-         subtitle = paste("Spearman's rho =", round(rhos,3), 
-                          as.character(p), ", n =", length(df$ChIP)))+
-    th
+  if(a == T){
+      gg <- ggplot(df, aes(x = log2(ChIP), y = RNA, color = status))+
+          geom_point(size = 3)+
+          scale_color_manual(values = c("TRUE"="#ffa10c", "FALSE"="grey"))+
+          guides(color = guide_legend(
+              title = expression(bold(paste(log[2]("TPM+1")," > 0.2:")))))+
+          theme_bw()+
+          geom_smooth(data = filter(df, status == "TRUE"),
+                      aes(x=log2(ChIP), y = RNA), method = "lm", se = F, color = "black")+
+          labs(title = paste(z), 
+               x = expression(bold(paste("Average ChIP ",log[2]("Enrichment")))), y = expression(bold(paste("Average ",log[2]("TPM+1")))),
+               subtitle = paste("Spearman's rho =", round(rhos,3), 
+                                as.character(p), ", n =", length(df$ChIP)))+
+          th+
+          geom_hline(yintercept = 0.2, 
+                     color = "Black", 
+                     linetype = "dashed", 
+                     size = 0.5)+
+          theme(legend.position = "bottom")
+          
+  }
+  else{
+      gg <- ggplot(df, aes(x = log2(ChIP), y = RNA))+
+          geom_point(color="#ffa10c", size = 3)+
+          theme_bw()+
+          geom_smooth(aes(x=log2(ChIP), y = RNA), method = "lm", se = F, color = "black")+
+          labs(title = paste(z), 
+               x = expression(bold(paste("Average ChIP ",log[2]("Enrichment")))), y = expression(bold(paste("Average ",log[2]("TPM+1")))),
+               subtitle = paste("Spearman's rho =", round(rhos,3), 
+                                as.character(p), ", n =", length(df$ChIP)))+
+          th 
+  }
+  
   return(gg)
 }
 
@@ -1112,7 +1129,7 @@ bar_overlap <- function(x,y,p,q, b = NULL, d){
   df$norm <- df$y-((df$x*a)+c)
   df <- df[order(df$norm),]
   setwd("C:/Users/Christoffer/OneDrive/1PhD/RNA-seq/BGI/RNA-seq 10102022")
-  TPM <- read.table("Gene abundance 25102022.txt", header = T)
+  TPM <- read.table("Gene abundance 03112022.txt", header = T)
   TPM <- TPM[TPM$SYMBOL %in% df$genes,]
   colnames(TPM)[8:10] <- c("HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")
   z1 <- dif_gene_express(TPM,c(p,q))
@@ -1235,7 +1252,7 @@ fragment_length <- function(x,y,z,p){
     th
   return(gg)
 }
-install.packages("matrixStats")
+
 ####TPM of 15 genes####
 x #data.frame of log2(TPM+1) values from RNA-seq of the 197 AVENIO genes returned by RNA_TPM()
 x #name of colnames to be plotted
@@ -1280,7 +1297,7 @@ RNA_plot_genes <- function(x, y){
 
 ####UMAP RNA-seq####
 umap_RNA_seq <- function(x,y){
-    set.seed(8)
+    set.seed(3)
     library(dplyr)
     library(parameters)
     library(ggplot2)
@@ -1356,7 +1373,7 @@ volcano_dif <- function(x,y){
         theme_bw(base_size = 17)+
         scale_x_continuous(breaks = seq(-10, 10, by = 2), limits = c(-10,10))+
         geom_label_repel(
-            aes(label=ifelse(Log2FC > 1, as.character(gene),"")),
+            aes(label=ifelse(Log2FC > 1 & Log10p , as.character(gene),"")),
             segment.color="#6a00fc",
             color="#6a00fc",
             nudge_x = 1,

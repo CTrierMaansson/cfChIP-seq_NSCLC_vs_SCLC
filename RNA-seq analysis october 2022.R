@@ -1,6 +1,6 @@
 setwd("C:/Users/Christoffer/OneDrive/1PhD/RNA-seq/BGI/RNA-seq 10102022")
 library(dplyr)
-TPM <- read.table("Gene abundance 25102022.txt", header = T)
+TPM <- read.table("Gene abundance 03112022.txt", header = T)
 colnames(TPM)[8:10] <- c("HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")
 setwd("C:/Users/Christoffer/OneDrive/1PhD/RNA-seq/BGI/Data/Gene abundance files")
 
@@ -46,7 +46,6 @@ dif_gene_express <- function(x,y){
     kk <- kk[order(-abs(kk$Log2FC)),]
     return(kk)
 }
-TPM <- read.table("Gene abundance 25102022.txt", header = T)
 TPM_reduced <- TPM[TPM$SYMBOL %in% grs$SYMBOL,]
 colnames(TPM_reduced)[8:10] <- c("HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")
 HCC827_vs_A549 <- dif_gene_express(TPM_reduced, c("HCC827_", "A549_"))
@@ -54,7 +53,7 @@ HCC827_vs_HCC827_MET <- dif_gene_express(TPM_reduced, c("HCC827_", "HCC827-MET_"
 
 HCC827_vs_A549 <- HCC827_vs_A549 %>% dplyr::filter(gene %ni% bad)
 HCC827_vs_HCC827_MET <- HCC827_vs_HCC827_MET %>% dplyr::filter(gene %ni% bad)
-HCC827_vs_HCC827_MET
+
 volcano_dif <- function(x,y){
     library(ggplot2)
     library(ggrepel)
@@ -121,7 +120,7 @@ volcano_dif <- function(x,y){
 }
 gg1 <- volcano_dif(HCC827_vs_A549, "HCC827 compared to A549")
 
-ggsave(filename = "figure 2 A549 vs. HCC827.png",
+ggsave(filename = "A549 vs. HCC827.png",
        plot = gg1,
        width = 8513, height = 6338, units = "px",
        path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables",

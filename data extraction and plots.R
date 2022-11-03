@@ -185,8 +185,10 @@ gg_enrichment(A549_enrichment, "A549 H3K36me3 ChIP enrichment", bad)
 gg_enrichment(HCC827_enrichment, "HCC827 H3K36me3 ChIP enrichment", bad)
 gg_enrichment(clone3_enrichment, "Clone3 H3K36me3 ChIP enrichment", bad)
 
+-log10(0.05)
+
 setwd("C:/Users/Christoffer/OneDrive/1PhD/RNA-seq/BGI/RNA-seq 10102022")
-TPM_AVENIO <- RNA_TPM("Gene abundance 25102022.txt",c("log2_A549_R1",
+TPM_AVENIO <- RNA_TPM("Gene abundance 03112022.txt",c("log2_A549_R1",
                                                       "log2_A549_R2",
                                                       "log2_A549_R3",
                                                       "log2_HCC827_R1",
@@ -197,21 +199,20 @@ TPM_AVENIO <- RNA_TPM("Gene abundance 25102022.txt",c("log2_A549_R1",
                                                       "log2_HCC827-MET_R3"))
 
 TPM_AVENIO
-TPM <- read.table("Gene abundance 25102022.txt", header = T)
+TPM <- read.table("Gene abundance 03112022.txt", header = T)
 colnames(TPM)[8:10] <- c("HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")
 
-
-
-
-HCC827_vs_A549 <- dif_gene_express(TPM_AVENIO, c("HCC827_", "A549_"))
-HCC827_vs_HCC827_MET <- dif_gene_express(TPM_AVENIO, c("HCC827_", "HCC827-MET_"))
+TPM_reduced <- TPM[TPM$SYMBOL %in% grs$SYMBOL,]
+colnames(TPM_reduced)[8:10] <- c("HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")
+HCC827_vs_A549 <- dif_gene_express(TPM_reduced, c("HCC827_", "A549_"))
+HCC827_vs_HCC827_MET <- dif_gene_express(TPM_reduced, c("HCC827_", "HCC827-MET_"))
+`%ni%` <- Negate(`%in%`)
 HCC827_vs_A549 <- HCC827_vs_A549 %>% dplyr::filter(gene %ni% bad)
 HCC827_vs_HCC827_MET <- HCC827_vs_HCC827_MET %>% dplyr::filter(gene %ni% bad)
+
 volcano_dif(HCC827_vs_A549, "HCC827 compared to A549")
 volcano_dif(HCC827_vs_HCC827_MET, "HCC827 compared to HCC827-MET")
 umap_RNA_seq(TPM,c("A549_", "HCC827_", "HCC827-MET_"))
-
-TPM_AVENIO
 mean_A549_TPM <- RNA_mean(TPM_AVENIO, "log2_A549_")
 mean_HCC827_TPM <- RNA_mean(TPM_AVENIO, "log2_HCC827_")
 mean_HCC827_MET_TPM <- RNA_mean(TPM_AVENIO, "log2_HCC827-MET_")
@@ -221,20 +222,21 @@ mean_HCC827_MET_TPM
 mean_HCC827_TPM
 
 setwd("C:/Users/Christoffer/OneDrive/1PhD/RNA-seq/BGI/RNA-seq 10102022")
-RNA_plot_genes(RNA_TPM("Gene abundance 25102022.txt", c("A549_R1", "A549_R2", "A549_R3",
+RNA_plot_genes(RNA_TPM("Gene abundance 03112022.txt", c("A549_R1", "A549_R2", "A549_R3",
                                                         "HCC827_R1", "HCC827_R2", "HCC827_R3",
                                                         "HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")),
                c("HCC827_R1", "HCC827_R2", "HCC827_R3"))
 
-RNA_plot_genes(RNA_TPM("Gene abundance 25102022.txt", c("A549_R1", "A549_R2", "A549_R3",
+RNA_plot_genes(RNA_TPM("Gene abundance 03112022.txt", c("A549_R1", "A549_R2", "A549_R3",
                                                         "HCC827_R1", "HCC827_R2", "HCC827_R3",
                                                         "HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")),
                c("A549_R1", "A549_R2", "A549_R3"))
 
-RNA_plot_genes(RNA_TPM("Gene abundance 25102022.txt", c("A549_R1", "A549_R2", "A549_R3",
+RNA_plot_genes(RNA_TPM("Gene abundance 03112022.txt", c("A549_R1", "A549_R2", "A549_R3",
                                                         "HCC827_R1", "HCC827_R2", "HCC827_R3",
                                                         "HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")),
                c("HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3"))
+
 
 versus(mean_A549_enrichment, mean_A549_TPM, "A549", 0.2)
 versus(mean_A549_enrichment, mean_A549_TPM, "A549", 0.2, a = T,)
@@ -243,15 +245,19 @@ versus(mean_A549_enrichment, mean_A549_TPM, "A549", 0.2, bad)
 
 versus(mean_HCC827_enrichment, mean_HCC827_TPM, "HCC827", 0.2, "EGFR")
 versus(mean_HCC827_enrichment, mean_HCC827_TPM, "HCC827", 0.2, a = T,g = "EGFR")
-versus(mean_HCC827_enrichment, mean_HCC827_TPM, "HCC827", 0.2, bad, T, g = "EGFR")
-versus(mean_HCC827_enrichment, mean_HCC827_TPM, "HCC827", 0.2, bad, g = "EGFR")
+versus(mean_HCC827_enrichment, mean_HCC827_TPM, "HCC827", 0.2, bad, T)
+versus(mean_HCC827_enrichment, mean_HCC827_TPM, "HCC827", 0.2, bad)
 
 versus(mean_HCC827_MET_enrichment, mean_HCC827_MET_TPM, "HCC827-MET", 0.2, g = c("EGFR", "MET"))
 versus(mean_HCC827_MET_enrichment, mean_HCC827_MET_TPM, "HCC827-MET", 0.2, a = T, g = c("EGFR", "MET"))
-versus(mean_HCC827_MET_enrichment, mean_HCC827_MET_TPM, "HCC827-MET", 0.2, bad, a = T, g = c("EGFR", "MET"))
-versus(mean_HCC827_MET_enrichment, mean_HCC827_MET_TPM, "HCC827-MET", 0.2, bad, g = c("EGFR", "MET"))
+versus(mean_HCC827_MET_enrichment, mean_HCC827_MET_TPM, "HCC827-MET", 0.2, bad, a = T)
+versus(mean_HCC827_MET_enrichment, mean_HCC827_MET_TPM, "HCC827-MET", 0.2, bad)
 
-
+ggsave(filename = "A549 ChIP vs. RNA.png",
+       width = 7437, height = 7437, units = "px",
+       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables/figure 1",
+       dpi = 1200,
+       device = "png")
 
 ChIPcorr_cell(mean_A549_enrichment, mean_HCC827_enrichment, "A549", "HCC827",bad)
 ChIPcorr_cell(mean_A549_enrichment, mean_HCC827_enrichment, "A549", "HCC827")
@@ -264,6 +270,8 @@ ChIPcorr_cell(mean_HCC827_MET_enrichment, mean_HCC827_enrichment, "HCC827-MET", 
 ChIPcorr_cell(mean_HCC827_MET_enrichment, mean_HCC827_enrichment, "HCC827-MET", "HCC827", z = 1)
 
 
+
+
 venn(A549_enrichment, HCC827_enrichment, TPM_AVENIO, "log2.HCC827", "log2.A549",
      bad, d = 1)
 venn(clone3_enrichment, HCC827_enrichment, TPM_AVENIO, "log2.HCC827", "log2.Clone3",
@@ -273,6 +281,16 @@ bar_overlap(mean_A549_enrichment, mean_HCC827_enrichment, "HCC827_", "A549_",
             bad, d = 1)
 bar_overlap(mean_HCC827_MET_enrichment, mean_HCC827_enrichment, "HCC827_", "HCC827-MET_",
             bad, d = 1)
+
+get_ROC_data(mean_A549_enrichment, mean_A549_TPM,
+             r = 0.2,
+             b = bad)
+get_ROC_data(mean_HCC827_enrichment, mean_HCC827_TPM,
+             r = 0.2,
+             b = bad)
+get_ROC_data(mean_HCC827_MET_enrichment, mean_HCC827_MET_TPM,
+             r = 0.2,
+             b = bad)
 
 gc()
 setwd("D:/Lung cancer cfChIP/Deduped")
