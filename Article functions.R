@@ -308,6 +308,7 @@ ChIPcorr <- function(x,y,p,q,b = NULL,z = NULL){
     df <- df %>% filter(genes %ni% b)
   } 
   df$reverse <- c(1:length(df$genes))
+  return(df)
   if (is.null(z)){
     gg <- ggplot(data = df, aes(x = reverse, y = log2FC))+
       geom_point(aes(colour=log2FC), size = 4)+
@@ -387,9 +388,75 @@ ChIPcorr <- function(x,y,p,q,b = NULL,z = NULL){
   }
   return(gg)
 }
-
+SCLC_tot_enrichment
+NSCLC_tot_enrichment
 ChIPcorr(Adeno1_enrichment, Adeno_tot_not1_enrichment, "adenocarcinoma 1", "average adenocarcinoma", bad)
 ChIPcorr(NSCLC_tot_enrichment, SCLC_tot_enrichment, "average NSCLC", "average SCLC", bad)
+
+####Confidence of NSCLC vs. SCLC####
+x #Average Enrichment data.frame return from average_enrichmet() for sample 1
+y #Average Enrichment data.frame return from average_enrichmet() for sample 2
+conf <- function(x,y,b = NULL){
+    library(dplyr)
+    `%ni%` <- Negate(`%in%`)
+    if(length(x$genes) == length(y$genes)){
+        y = y
+        x = x
+    }
+    else{
+        if (length(x$genes) > length(y$genes)){
+            x <- x %>% filter(genes %in% y$genes)
+        }
+        if (length(y$genes) > length(x$genes)){
+            y <- y %>% filter(genes %in% x$genes)
+        }
+    }
+    y <- y[(match(x$genes, y$genes)),]
+    x_df <- x %>% select(-enrichment)
+    y_df <- y %>% select(-enrichment)
+    rownames(x_df) <- x_df$genes
+    rownames(y_df) <- y_df$genes
+    x_df <- x_df %>% select(-genes)
+    y_df <- y_df %>% select(-genes)
+    group1_t <- as.data.frame(t(x_df))
+    group2_t <- as.data.frame(t(y_df))
+    p <- c()
+    group1 <- c()
+    group2 <- c()
+    se_group1 <- c()
+    se_group2 <- c()
+    conf_lower <- c()
+    conf_upper <- c()
+    clean <- c()
+    for (i in 1:(length(group1_t))){
+        g1 <- group1_t[,i]
+        g2 <- group2_t[,i]
+        res <- t.test(log2(g1),log2(g2), paired = F, alternative = "two.sided")
+        p[i] <- res$p.value
+        group1[i] <- mean(g1)
+        group2[i] <- mean(g2)
+        conf_lower[i] <- res$conf.int[1]
+        conf_upper[i] <- res$conf.int[2]
+        clean[i] <- paste0("[",round(res$conf.int[1],4), " - ", round(res$conf.int[2],4),"]")
+    }
+    q <- p.adjust(p, method = "fdr")
+    kk <- data.frame(gene = colnames(group1_t),
+                     group1_name = round(group1,0),
+                     group2_name = round(group2,0),
+                     Log2FC = round(log2(group1/group2),4),
+                     clean = clean)
+    kk <- kk[order(kk$Log2FC),]
+    kk$output <- paste(kk$Log2FC, kk$clean)
+    if(!is.null(b)){
+        kk <- kk[kk$gene %ni% b,]
+    }
+    kk <- kk %>% select(gene, group1_name, group2_name, output)
+    return(kk)
+}
+setwd("C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article")
+
+write_xlsx(conf(EGFR_mut_enrichment, EGFR_WT_enrichment, bad),
+           "Confidence interval of EGFR-mut vs. EGFR-WT.xlsx")
 
 ####Normalized correlation plot for cells####
 
@@ -1439,6 +1506,7 @@ dif_gene_express <- function(x,y){
     kk <- kk[order(-abs(kk$Log2FC)),]
     return(kk)
 }
+dif_gene_express(TPM_AVENIO, c("HCC827_", "A549_"))
 HCC827_vs_A549 <- dif_gene_express(TPM_AVENIO, c("HCC827_", "A549_"))
 HCC827_vs_HCC827_MET <- dif_gene_express(TPM_AVENIO, c("HCC827_", "HCC827-MET_"))
 

@@ -14,7 +14,7 @@ th <- theme(
     title = element_text(size = 14, face = "bold"))
 
 setwd("C:/Users/Christoffer/OneDrive/1PhD/R files/Important excel and text documents")
-
+bad <- badgene("Complete table of all targets.txt",25)
 grs <- gr("AVENIO_genes.txt")
 setwd("D:/Cell ChIP/Deduped")
 A549_ChIP <- gene_count("A549_ChIP.bam", grs)
@@ -30,6 +30,7 @@ HCC827_ChIP_R3 <- gene_count("HCC827_R3_ChIP.bam", grs)
 HCC827_MET_ChIP_R1 <- gene_count("HCC827-MET_R1_ChIP.bam", grs)
 HCC827_MET_ChIP_R2 <- gene_count("HCC827-MET_R2_ChIP.bam", grs)
 HCC827_MET_ChIP_R3 <- gene_count("HCC827-MET_R3_ChIP.bam", grs)
+HCC827_MET_ChIP_R3
 
 setwd("C:/Users/Christoffer/OneDrive/1PhD/R files/Important excel and text documents")
 metrics("A549_R1_ChIP.bam", "AVENIO_genes.txt", "Coverage of AVENIO genes.txt",
@@ -179,7 +180,7 @@ gg_enrichment(HCC827_MET_R2_enrichment, "HCC827-MET R2 H3K36me3 ChIP enrichment"
 gg_enrichment(HCC827_MET_R3_enrichment, "HCC827-MET R3 H3K36me3 ChIP enrichment", bad)
 
 
-bad <- badgene("Complete table of all targets.txt",25)
+
 
 gg_enrichment(A549_enrichment, "A549 H3K36me3 ChIP enrichment", bad)
 gg_enrichment(HCC827_enrichment, "HCC827 H3K36me3 ChIP enrichment", bad)
@@ -242,7 +243,21 @@ versus(mean_A549_enrichment, mean_A549_TPM, "A549", 0.2)
 versus(mean_A549_enrichment, mean_A549_TPM, "A549", 0.2, a = T,)
 versus(mean_A549_enrichment, mean_A549_TPM, "A549", 0.2, bad, T)
 versus(mean_A549_enrichment, mean_A549_TPM, "A549", 0.2, bad)
+library(writexl)
+write_xlsx(full_join(versus(mean_A549_enrichment, mean_A549_TPM, "A549", 0.2),
+                     versus(mean_A549_enrichment, mean_A549_TPM, "A549", 0.2, bad),
+                     by = "genes"), 
+           "A549 inclusion-exclusion.xlsx")
+write_xlsx(full_join(versus(mean_HCC827_enrichment, mean_HCC827_TPM, "HCC827", 0.2),
+                     versus(mean_HCC827_enrichment, mean_HCC827_TPM, "HCC827", 0.2, bad),
+                     by = "genes"), 
+           "HCC827 inclusion-exclusion.xlsx")
+write_xlsx(full_join(versus(mean_HCC827_MET_enrichment, mean_HCC827_MET_TPM, "HCC827-MET", 0.2),
+                     versus(mean_HCC827_MET_enrichment, mean_HCC827_MET_TPM, "HCC827-MET", 0.2, bad),
+                     by = "genes"), 
+           "HCC827-MET inclusion-exclusion.xlsx")
 
+?full_join
 versus(mean_HCC827_enrichment, mean_HCC827_TPM, "HCC827", 0.2, "EGFR")
 versus(mean_HCC827_enrichment, mean_HCC827_TPM, "HCC827", 0.2, a = T,g = "EGFR")
 versus(mean_HCC827_enrichment, mean_HCC827_TPM, "HCC827", 0.2, bad, T)
