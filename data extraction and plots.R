@@ -85,7 +85,7 @@ HCC827_MET_bam_list <- GRangesList(R1 = HCC827_MET_ChIP_R1_bam,
 setwd("C:/Users/Christoffer/OneDrive/1PhD/R files/Important excel and text documents")
 
 e.score_distribution("Complete table of all targets.txt",
-                     c("NRAS", "KRAS","TP53", "ERBB2", "BRCA1", "EGFR", "MET", "BRAF"),
+                     c("NRAS", "KRAS","TP53", "ERBB2", "BRCA1", "MET", "BRAF"),
                      c("KIT","PDGFRA", "ROS1", "RET", "APC", "ALK", "BRCA2"),
                      HCC827_bam_list, "HCC827")
 ggsave(filename = "H3K36me3 distribution HCC827.png",
@@ -116,7 +116,25 @@ ggsave(filename = "H3K36me3 distribution HCC827-MET.png",
 
 coverages("HCC827.bedgraph", z = "AVENIO_genes.txt")
 
-
+combined_bamlist <- GRangesList(R1 = A549_ChIP_R1_bam,
+                                R2 = A549_ChIP_R2_bam,
+                                R3 = A549_ChIP_R3_bam,
+                                R4 = HCC827_ChIP_R1_bam,
+                                R5 = HCC827_ChIP_R2_bam,
+                                R6 = HCC827_ChIP_R3_bam,
+                                R7 = HCC827_MET_ChIP_R1_bam,
+                                R8 = HCC827_MET_ChIP_R2_bam,
+                                R9 = HCC827_MET_ChIP_R3_bam)
+e.score_distribution("Complete table of all targets.txt",
+                     c("NRAS", "KRAS","TP53", "ERBB2", "BRCA1"
+                       ,"MET", "BRAF", "BRCA2"),
+                     c("KIT","PDGFRA", "ROS1", "RET"),
+                     combined_bamlist, "A549, HCC827 and HCC827-MET")
+ggsave(filename = "H3K36me3 distribution all cell lines.png",
+       width = 9137, height = 5812, units = "px",
+       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables/figure 1",
+       dpi = 1200,
+       device = "png")
 
 A549_enrichment <- e.score(A549_ChIP, "Coverage of AVENIO genes.txt",gr("AVENIO_genes.txt"))
 HCC827_enrichment <- e.score(HCC827_ChIP, "Coverage of AVENIO genes.txt",gr("AVENIO_genes.txt"))
@@ -226,18 +244,34 @@ setwd("C:/Users/Christoffer/OneDrive/1PhD/RNA-seq/BGI/RNA-seq 10102022")
 RNA_plot_genes(RNA_TPM("Gene abundance 03112022.txt", c("A549_R1", "A549_R2", "A549_R3",
                                                         "HCC827_R1", "HCC827_R2", "HCC827_R3",
                                                         "HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")),
-               c("HCC827_R1", "HCC827_R2", "HCC827_R3"))
+               c("HCC827_R1", "HCC827_R2", "HCC827_R3"), "HCC827")
+
+
 
 RNA_plot_genes(RNA_TPM("Gene abundance 03112022.txt", c("A549_R1", "A549_R2", "A549_R3",
                                                         "HCC827_R1", "HCC827_R2", "HCC827_R3",
                                                         "HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")),
-               c("A549_R1", "A549_R2", "A549_R3"))
+               c("A549_R1", "A549_R2", "A549_R3"), "A549")
 
 RNA_plot_genes(RNA_TPM("Gene abundance 03112022.txt", c("A549_R1", "A549_R2", "A549_R3",
                                                         "HCC827_R1", "HCC827_R2", "HCC827_R3",
                                                         "HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")),
-               c("HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3"))
+               c("HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3"), "HCC827-MET")
 
+
+
+RNA_plot_genes(RNA_TPM("Gene abundance 03112022.txt", c("A549_R1", "A549_R2", "A549_R3",
+                                                        "HCC827_R1", "HCC827_R2", "HCC827_R3",
+                                                        "HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")),
+               c("A549_R1", "A549_R2", "A549_R3",
+                 "HCC827_R1", "HCC827_R2", "HCC827_R3",
+                 "HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3"),
+               "A549, HCC827, HCC827-MET")
+ggsave(filename = "RNA expression 12 genes all cell lines.png",
+       width = 12275, height = 7800, units = "px",
+       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables/supplementary",
+       dpi = 1200,
+       device = "png")
 
 versus(mean_A549_enrichment, mean_A549_TPM, "A549", 0.2)
 versus(mean_A549_enrichment, mean_A549_TPM, "A549", 0.2, a = T,)

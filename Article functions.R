@@ -583,16 +583,50 @@ e.score_distribution <- function(x,y,z,b, t){
   x1 <- read.table(x, header = T)
   xx <- x1[(x1$SYMBOL %in% c(y,z)),]
   targets$length <- xx$end - xx$start
-  se_ChIP_R1 <- summarizeOverlaps(features = targets, reads = b$R1, 
-                                  ignore.strand = T, mode = "Union")
-  se_ChIP_R2 <- summarizeOverlaps(features = targets, reads = b$R2, 
-                                  ignore.strand = T, mode = "Union")
-  se_ChIP_R3 <- summarizeOverlaps(features = targets, reads = b$R3, 
-                                  ignore.strand = T, mode = "Union")
-  ChIP_reads <- data.frame(genes = targets$SYMBOL, 
-                           readcounts = assays(se_ChIP_R1)$counts[1:length(assays(se_ChIP_R1)$counts)]+
-                               assays(se_ChIP_R2)$counts[1:length(assays(se_ChIP_R2)$counts)]+
-                               assays(se_ChIP_R3)$counts[1:length(assays(se_ChIP_R3)$counts)])
+  
+  if (length(b) > 3){
+      se_ChIP_R1 <- summarizeOverlaps(features = targets, reads = b$R1, 
+                                      ignore.strand = T, mode = "Union")
+      se_ChIP_R2 <- summarizeOverlaps(features = targets, reads = b$R2, 
+                                      ignore.strand = T, mode = "Union")
+      se_ChIP_R3 <- summarizeOverlaps(features = targets, reads = b$R3, 
+                                      ignore.strand = T, mode = "Union")
+      se_ChIP_R4 <- summarizeOverlaps(features = targets, reads = b$R4, 
+                                      ignore.strand = T, mode = "Union")
+      se_ChIP_R5 <- summarizeOverlaps(features = targets, reads = b$R5, 
+                                      ignore.strand = T, mode = "Union")
+      se_ChIP_R6 <- summarizeOverlaps(features = targets, reads = b$R6, 
+                                      ignore.strand = T, mode = "Union")
+      se_ChIP_R7 <- summarizeOverlaps(features = targets, reads = b$R7, 
+                                      ignore.strand = T, mode = "Union")
+      se_ChIP_R8 <- summarizeOverlaps(features = targets, reads = b$R8, 
+                                      ignore.strand = T, mode = "Union")
+      se_ChIP_R9 <- summarizeOverlaps(features = targets, reads = b$R9, 
+                                      ignore.strand = T, mode = "Union")
+      ChIP_reads <- data.frame(genes = targets$SYMBOL, 
+                               readcounts = assays(se_ChIP_R1)$counts[1:length(assays(se_ChIP_R1)$counts)]+
+                                   assays(se_ChIP_R2)$counts[1:length(assays(se_ChIP_R2)$counts)]+
+                                   assays(se_ChIP_R3)$counts[1:length(assays(se_ChIP_R3)$counts)]+
+                                   assays(se_ChIP_R4)$counts[1:length(assays(se_ChIP_R4)$counts)]+
+                                   assays(se_ChIP_R5)$counts[1:length(assays(se_ChIP_R5)$counts)]+
+                                   assays(se_ChIP_R6)$counts[1:length(assays(se_ChIP_R6)$counts)]+
+                                   assays(se_ChIP_R7)$counts[1:length(assays(se_ChIP_R7)$counts)]+
+                                   assays(se_ChIP_R8)$counts[1:length(assays(se_ChIP_R8)$counts)]+
+                                   assays(se_ChIP_R9)$counts[1:length(assays(se_ChIP_R9)$counts)])
+  }
+  else{
+      se_ChIP_R1 <- summarizeOverlaps(features = targets, reads = b$R1, 
+                                      ignore.strand = T, mode = "Union")
+      se_ChIP_R2 <- summarizeOverlaps(features = targets, reads = b$R2, 
+                                      ignore.strand = T, mode = "Union")
+      se_ChIP_R3 <- summarizeOverlaps(features = targets, reads = b$R3, 
+                                      ignore.strand = T, mode = "Union")
+      ChIP_reads <- data.frame(genes = targets$SYMBOL, 
+                               readcounts = assays(se_ChIP_R1)$counts[1:length(assays(se_ChIP_R1)$counts)]+
+                                   assays(se_ChIP_R2)$counts[1:length(assays(se_ChIP_R2)$counts)]+
+                                   assays(se_ChIP_R3)$counts[1:length(assays(se_ChIP_R3)$counts)])
+  }
+  
   ChIP_reads$coverage <- targets$length
   ChIP_reads <- ChIP_reads %>% filter(readcounts > 10)
   len <- as.numeric(sum(ChIP_reads$readcounts))
@@ -624,10 +658,10 @@ e.score_distribution <- function(x,y,z,b, t){
                    paste("Inactive genes \nn = ", length(unique(inactive$genes)),"\n"))
   gg <- ggplot(ChIP_reads, aes(x = relative, y = enrichment),group = activity, fill = activity)+
     geom_smooth(data = ChIP_reads[ChIP_reads$activity=="Active",],
-                method = "loess", span = 1.3, se = F,
+                method = "loess", span = 0.25, se = F,
                 aes(colour = names(cols)[1], fill = names(cols)[1]))+
     geom_smooth(data = ChIP_reads[ChIP_reads$activity=="Inactive",],
-                method = "loess", span = 1.3, se = F,
+                method = "loess", span = 0.25, se = F,
                 aes(colour = names(cols)[2], fill = names(cols)[2]))+
     scale_color_manual(name = "Gene activity", 
                        values = c("green4", "firebrick"),
@@ -637,12 +671,12 @@ e.score_distribution <- function(x,y,z,b, t){
     geom_ribbon(data = ChIP_reads[ChIP_reads$activity=="Active",], 
                 aes(ymin = 0,
                     ymax = predict(loess(enrichment ~ relative, 
-                                         span=1.3))),
+                                         span=0.25))),
                 alpha = 0.3,fill = "green4")+
     geom_ribbon(data = ChIP_reads[ChIP_reads$activity=="Inactive",], 
                 aes(ymin = 0, 
                     ymax = predict(loess(enrichment ~ relative, 
-                                         span=1.3))),
+                                         span=0.25))),
                 alpha = 0.5,fill = "firebrick")+
     scale_x_continuous(limits=c(0,100))+
     labs(title =paste(t),
@@ -1323,24 +1357,24 @@ fragment_length <- function(x,y,z,p){
 ####TPM of 15 genes####
 x #data.frame of log2(TPM+1) values from RNA-seq of the 197 AVENIO genes returned by RNA_TPM()
 x #name of colnames to be plotted
-RNA_plot_genes <- function(x, y){
+z #Cell line used
+RNA_plot_genes <- function(x, y, z){
   library(ggplot2)
   library(dplyr)
   library(tidyverse)
   library(matrixStats)
   x1 <- x[c("SYMBOL", y)] %>% 
-    filter(SYMBOL %in% c("NRAS", "RET", "KRAS",
-                         "BRCA2","TP53", "ERBB2",
-                         "BRCA1", "ALK","PDGFRA",
-                         "KIT", "APC", "ROS1",
-                         "EGFR", "MET", "BRAF"))
+    filter(SYMBOL %in% c("NRAS", "KRAS","TP53",
+                         "ERBB2", "BRCA1","MET",
+                         "BRAF", "BRCA2", "KIT",
+                         "PDGFRA", "ROS1", "RET"))
   
   activity <- c()
   sd <- c()
   x1$means <- rowMeans(x1[,-1])
   x1$sd <- rowSds(as.matrix(x1[,-1]))
   for (i in 1:length(x1$SYMBOL)){
-    if(x1$means[i]>2){
+    if(x1$means[i]>0.2){
       activity[i] <- "High"
     }
     else{
@@ -1353,7 +1387,8 @@ RNA_plot_genes <- function(x, y){
                               y = means, fill = activity))+
     geom_bar(stat = "identity")+
     geom_errorbar(aes(ymin=means-sd, ymax=means+sd), width=.3)+
-    labs(x = "", y = "Log2(TPM+1)")+
+    labs(x = "", y = "Log2(TPM+1)",
+         title = z)+
     scale_fill_manual("Gene activity", values = c("green4", "firebrick"))+
     theme_bw()+
     theme(axis.text.x = element_text(angle = 60, hjust = 0.5, vjust = 0.7))+
