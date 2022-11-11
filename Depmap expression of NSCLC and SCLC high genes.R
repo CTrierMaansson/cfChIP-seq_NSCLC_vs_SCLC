@@ -2,7 +2,7 @@ library(depmap)
 library(ExperimentHub)
 library(dplyr)
 library(writexl)
-setwd("C:/Users/Christoffer/OneDrive/1PhD/Adeno, plano and SCLC article/Depmap data")
+setwd("C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/Depmap data")
 colnames(CCLE_sample_info)
 fun1 <- function(x){
   res <- paste(x,sep = "","_LUNG")
@@ -160,6 +160,7 @@ cell_expression_enriched <- function(x,y,z,q = 15){
 
 }
 NSCLC_vs_SCLC_res <- cell_expression_enriched(NSCLC_SCLC_ChIPdif, NSCLC_expression_df, SCLC_expression_df, 15)
+NSCLC_vs_SCLC_res
 setwd("C:/Users/Christoffer/OneDrive/1PhD/Adeno, plano and SCLC article")
 write_xlsx(NSCLC_vs_SCLC_res$s1_high, "NSCLC_high.xlsx")
 write_xlsx(NSCLC_vs_SCLC_res$s2_high, "SCLC_high.xlsx")
@@ -228,15 +229,15 @@ volcano <- function(x,y){
   gg <- ggplot(data = x, aes(x = Log2FC, y = Log10p,
                        size = which, fill = Log2FC))+
     geom_point(shape = 21,
-               stroke = 0,)+
+               stroke = 0.5)+
     scale_fill_gradient2(low = "#ffa10c", high = "#6a00fc",
                          mid = "grey",
-                         name = expression(log[2]("FC")),
+                         name = expression(bold(log[2]("FC"))),
                          limits= c(-7,7))+
-    scale_size(name = expression(log[2]("TPM+1")),
+    scale_size(name = expression(bold(log[2]("TPM+1"))),
                limits= c(0,9))+
-    xlab(expression(log[2]("FC")))+
-    ylab(expression(paste("-",log[10]("q-value"), sep = "")))+
+    xlab(expression(bold(log[2]("FC"))))+
+    ylab(expression(bold(paste("-",log[10]("q-value"), sep = ""))))+
     labs(title = y)+
     geom_vline(xintercept = 0,
                linetype = "solid",
@@ -265,7 +266,7 @@ volcano <- function(x,y){
 volcano(dge_res, "NSCLC versus SCLC")
 ggsave(filename = "NSCLC versus SCLC.png",
        width = 12275, height = 7800, units = "px",
-       path = "C:/Users/Christoffer/OneDrive/1PhD/Adeno, plano and SCLC article/Figures and tables/Supplementary/Supp 8",
+       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables/supplementary",
        dpi = 1200,
        device = "png")
 
@@ -320,7 +321,7 @@ ratio_plot <- function(x){
       }
     }
     else{
-      return("filtered")
+      return("Filtered")
     }
   }
   res <- apply(x, FUN = fun1, MARGIN = 1)
@@ -340,8 +341,8 @@ ratio_plot <- function(x){
     theme_bw()+
     scale_color_manual(name = "cfChIP results", 
                        values = c("#ffa10c", "#6a00fc", "#999999"))+
-    labs(title = "cfChIP compared to CCLE expression",
-           y = "cfChIP relative enrichment", x = "RNA log2FC",
+    labs(title = "cfChIP compared to CCLE RNA expression",
+           y = "Relative enrichment", x = expression(bold(paste("RNA ",log[2]("FC"), sep = ""))),
          subtitle = paste("Spearman's rho =", round(rhos,3), 
                           as.character(p)))+
     scale_x_continuous(breaks = seq(-6,6,2), limits = c(-6,6))+
@@ -360,6 +361,11 @@ ratio_plot <- function(x){
 }
 ratio_plot(ratio_df)
 
+ggsave(filename = "cfChIP compared to CCLE expression.png",
+       width = 9137, height = 5812, units = "px",
+       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables/figure 4",
+       dpi = 1200,
+       device = "png")
 
 x #ratio_df
 ratio_contin <- function(x){

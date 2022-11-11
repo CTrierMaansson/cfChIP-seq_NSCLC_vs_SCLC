@@ -308,14 +308,13 @@ ChIPcorr <- function(x,y,p,q,b = NULL,z = NULL){
     df <- df %>% filter(genes %ni% b)
   } 
   df$reverse <- c(1:length(df$genes))
-  return(df)
   if (is.null(z)){
     gg <- ggplot(data = df, aes(x = reverse, y = log2FC))+
       geom_point(aes(colour=log2FC), size = 4)+
       labs(title=paste("cfChIP-seq comparison of", p, "and",q), 
            x = "Genes", y= "Relative enrichment")+
       scale_colour_gradient2(midpoint = 0, low="#ffa10c", mid ="grey", 
-                             high="#6a00fc", name = "Log2 difference", 
+                             high="#6a00fc", name = expression(bold(log[2]("FC"))), 
                              limits=c(round(min(df$log2FC))-0.5,round(max(df$log2FC))+0.5))+
       geom_abline(intercept = 0, slope = 0, color = "Black", linetype = "solid", size = 1.5)+
       geom_label_repel(
@@ -339,10 +338,10 @@ ChIPcorr <- function(x,y,p,q,b = NULL,z = NULL){
         max.overlaps = 100,
         fill = alpha(c("white"),0))+
       theme_bw()+
-      geom_label(x = 40, y = (max(df$log2FC)-0.5), 
+      geom_label(x = 40, y = (max(df$log2FC)-0.25), 
                  label = paste("Upregulated in",p),
                  color = "#6a00fc", label.size = 0, size = 5)+
-      geom_label(x = 120, y = (min(df$log2FC)+0.5), label = paste("Upregulated in",q),
+      geom_label(x = 120, y = (min(df$log2FC)+0.25), label = paste("Upregulated in",q),
                  color = "#ffa10c", label.size = 0, size = 5)+
       th
   }
@@ -353,7 +352,7 @@ ChIPcorr <- function(x,y,p,q,b = NULL,z = NULL){
            x = "Genes", y= "Relative enrichment",
            caption = paste("Cut-off at Log2 difference = +/-",z))+
       scale_colour_gradient2(midpoint = 0, low="#ffa10c", mid ="grey", 
-                             high="#6a00fc", name = "Log2 difference", 
+                             high="#6a00fc", name = expression(bold(log[2]("FC"))), 
                              limits=c(round(min(df$log2FC))-0.5,round(max(df$log2FC))+0.5))+
       geom_abline(intercept = z, slope = 0, color = "Black", linetype = "dashed", size = 1)+
       geom_abline(intercept = -z, slope = 0, color = "Black", linetype = "dashed", size = 1)+
@@ -465,8 +464,7 @@ y #Enrichment data.frame return from e.score() for sample 2
 p #x-axis title
 q #y-axis title
 b #optional: list of genes returned by badgene(), otherwise type NULL
-z #cut-off of difference, otherwise NULL for top 15 differentially expressed genes
-ChIPcorr_cell <- function(x,y,p,q,b = NULL,z = NULL){
+ChIPcorr_cell <- function(x,y,p,q,b = NULL){
   library(dplyr)
   library(ggplot2)
   library(ggrepel)
@@ -491,79 +489,51 @@ ChIPcorr_cell <- function(x,y,p,q,b = NULL,z = NULL){
   else{
     df <- df %>% filter(genes %ni% b)
   } 
-  res <- summary(lm(y~x, data=df))
-  a <- res$coefficients[2,1]
-  c <- res$coefficients[1,1]
-  df$norm <- df$y-((df$x*a)+c)
-  df <- df[order(df$norm),]
+  df <- na.omit(df)
+  model <- lm(y~x, data=df)
+  df <- data.frame(genes = df$genes,
+                   x = fitted(model), 
+                   y = resid(model))
+  df <- df[order(df$y),]
   df$reverse <- c(1:length(df$genes))
-  if(!is.null(z)){
-    gg <- ggplot(data = df, aes(x = x, y = y))+
-      geom_point(aes(colour=norm), size = 4)+
+  gg <- ggplot(data = df, aes(x = reverse, y = y, color = y))+
+      geom_point(size = 4)+
       scale_colour_gradient2(midpoint = 0, low="#ffa10c", mid ="grey", 
-                             high="#6a00fc", name = expression(log[2]("Difference")), 
-                             limits=c(round(min(df$norm))-1,round(max(df$norm))+1))+
-      labs(title=paste("Average ChIP-seq enrichment of", q, "and", p), 
-           x = p, y=q)+
+                             high="#6a00fc", name = expression(bold(log[2]("FC"))), 
+                             limits=c(round(min(df$y))-1,round(max(df$y))+1))+
       theme_bw()+
-      geom_smooth(method="lm", se=F, color = "black")+
-      geom_abline(intercept = c+z, slope = a, color = "Black", linetype = "dashed", size = 1)+
-      geom_abline(intercept = c-z, slope = a, color = "Black", linetype = "dashed", size = 1)+
+      labs(title=paste("Average ChIP-seq enrichment of", p, "and", q), 
+           x = "Genes", 
+           y = "Relative enrichment")+
+      geom_hline(yintercept = 0, color = "Black", linetype = "solid", size = 1)+
       geom_label_repel(
-        aes(label=ifelse(norm>z, as.character(paste(genes)),"")),
-        segment.color="#6a00fc",
-        color = "#6a00fc",
-        label.size = 0.5,
-        parse = F,
-        size = 3.5,
-        max.overlaps = 100,
-        fill = alpha(c("white"),0))+
+          aes(label=ifelse(reverse > (length(reverse))-15, as.character(paste(genes)),"")),
+          segment.color="#6a00fc",
+          color = "#6a00fc",
+          label.size = NA,
+          nudge_y = 0,
+          parse = F,
+          size = 3.5,
+          max.overlaps = 100,
+          fill = alpha(c("white"),0))+
       geom_label_repel(
-        aes(label=ifelse(norm < (-z), as.character(paste(genes)),"")),
-        segment.color="#ffa10c",
-        color = "#ffa10c",
-        label.size = 0.5,
-        parse = F,
-        size = 3.5,
-        max.overlaps = 100,
-        fill = alpha(c("white"),0))+
+          aes(label=ifelse(reverse < 16, as.character(paste(genes)),"")),
+          segment.color="#ffa10c",
+          color = "#ffa10c",
+          label.size = NA,
+          nudge_y = 0,
+          parse = F,
+          size = 3.5,
+          max.overlaps = 100,
+          fill = alpha(c("white"),0))+
+      geom_label(x = 40, y = (max(df$y)-0.5), 
+                 label = paste("Upregulated in",p),
+                 color = "#6a00fc", label.size = 0, size = 5)+
+      geom_label(x = 120, y = (min(df$y)+0.5), label = paste("Upregulated in",q),
+                 color = "#ffa10c", label.size = 0, size = 5)+
       th
-  }
-  else{
-    gg <- ggplot(data = df, aes(x = x, y = y))+
-      geom_point(aes(colour=norm), size = 4)+
-      scale_colour_gradient2(midpoint = 0, low="#ffa10c", mid ="grey", 
-                             high="#6a00fc", name = expression(log[2]("difference")), 
-                             limits=c(round(min(df$norm))-1,round(max(df$norm))+1))+
-      labs(title=paste("Average ChIP-seq enrichment of", q,"and", p), 
-           x = p, y=q)+
-      theme_bw()+
-      geom_smooth(method="lm", se=F, color = "black")+
-      geom_label_repel(
-        aes(label=ifelse(reverse > (length(reverse))-15, as.character(paste(genes)),"")),
-        segment.color="#6a00fc",
-        color = "#6a00fc",
-        label.size = NA,
-        nudge_y = 0,
-        parse = F,
-        size = 3.5,
-        max.overlaps = 100,
-        fill = alpha(c("white"),0))+
-      geom_label_repel(
-        aes(label=ifelse(reverse < 16, as.character(paste(genes)),"")),
-        segment.color="#ffa10c",
-        color = "#ffa10c",
-        label.size = NA,
-        nudge_y = 0,
-        parse = F,
-        size = 3.5,
-        max.overlaps = 100,
-        fill = alpha(c("white"),0))+
-      th
-  }
   return(gg)
 }
-
 
 ####Plot of enrichment relative to TSS####
 x #File with all Targets in AVENIO panel. Containing chromosome, start of target, end of target, gene SYMBOL
@@ -1224,11 +1194,12 @@ bar_overlap <- function(x,y,p,q, b = NULL, d){
     df <- df %>% filter(genes %ni% b)
     t <- "sorted "
   } 
-  res <- summary(lm(y~x, data=df))
-  a <- res$coefficients[2,1]
-  c <- res$coefficients[1,1]
-  df$norm <- df$y-((df$x*a)+c)
-  df <- df[order(df$norm),]
+  df <- na.omit(df)
+  model <- lm(y~x, data=df)
+  df <- data.frame(genes = df$genes,
+                   x = fitted(model), 
+                   y = resid(model))
+  df <- df[order(df$y),]
   setwd("C:/Users/Christoffer/OneDrive/1PhD/RNA-seq/BGI/RNA-seq 10102022")
   TPM <- read.table("Gene abundance 03112022.txt", header = T)
   TPM <- TPM[TPM$SYMBOL %in% df$genes,]
@@ -1248,9 +1219,9 @@ bar_overlap <- function(x,y,p,q, b = NULL, d){
     t <- "sorted "
   }
   rna_df_high <- z1 %>% filter(FC > d)
-  ChIP_df_high <- df %>% filter(norm > 0) %>% filter(genes %in% rna_df_high$SYMBOL)
+  ChIP_df_high <- df %>% filter(y > 0) %>% filter(genes %in% rna_df_high$SYMBOL)
   rna_df_low <- z1 %>% filter(FC < -d)
-  ChIP_df_low <- df %>% filter(norm < 0) %>% filter(genes %in% rna_df_low$SYMBOL)
+  ChIP_df_low <- df %>% filter(y < 0) %>% filter(genes %in% rna_df_low$SYMBOL)
   ChIP_negative_high <- rna_df_high %>% filter(SYMBOL %ni% ChIP_df_high$genes)
   ChIP_negative_low <- rna_df_low %>% filter(SYMBOL %ni% ChIP_df_low$genes)
   df1 <- data.frame(discovery = factor(c("Agree", "Disagree",
@@ -1387,11 +1358,11 @@ RNA_plot_genes <- function(x, y, z){
                               y = means, fill = activity))+
     geom_bar(stat = "identity")+
     geom_errorbar(aes(ymin=means-sd, ymax=means+sd), width=.3)+
-    labs(x = "", y = "Log2(TPM+1)",
+    labs(x = "", y = expression(bold(log[2]("TPM+1"))),
          title = z)+
     scale_fill_manual("Gene activity", values = c("green4", "firebrick"))+
     theme_bw()+
-    theme(axis.text.x = element_text(angle = 60, hjust = 0.5, vjust = 0.7))+
+    theme(axis.text.x = element_text(angle = 60, hjust = 0.5, vjust = 0.7, face = "bold"))+
     th
   return(gg)
 }
@@ -1679,5 +1650,3 @@ diff_gene_chip(list(HCC827_R1_enrichment,
                     HCC827_MET_R2_enrichment,
                     HCC827_MET_R3_enrichment),
                bad)
-
-

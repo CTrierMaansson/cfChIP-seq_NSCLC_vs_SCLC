@@ -20,7 +20,7 @@ setwd("D:/Cell ChIP/Deduped")
 A549_ChIP <- gene_count("A549_ChIP.bam", grs)
 HCC827_ChIP <- gene_count("HCC827ChIP.bam", grs)
 Clone3_ChIP <- gene_count("HCC827_ER_klon3_ChIP.bam", grs)
-
+setwd("C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/BAM files and manifests")
 A549_ChIP_R1 <- gene_count("A549_R1_ChIP.bam", grs)
 A549_ChIP_R2 <- gene_count("A549_R2_ChIP.bam", grs)
 A549_ChIP_R3 <- gene_count("A549_R3_ChIP.bam", grs)
@@ -30,7 +30,6 @@ HCC827_ChIP_R3 <- gene_count("HCC827_R3_ChIP.bam", grs)
 HCC827_MET_ChIP_R1 <- gene_count("HCC827-MET_R1_ChIP.bam", grs)
 HCC827_MET_ChIP_R2 <- gene_count("HCC827-MET_R2_ChIP.bam", grs)
 HCC827_MET_ChIP_R3 <- gene_count("HCC827-MET_R3_ChIP.bam", grs)
-HCC827_MET_ChIP_R3
 
 setwd("C:/Users/Christoffer/OneDrive/1PhD/R files/Important excel and text documents")
 metrics("A549_R1_ChIP.bam", "AVENIO_genes.txt", "Coverage of AVENIO genes.txt",
@@ -88,31 +87,16 @@ e.score_distribution("Complete table of all targets.txt",
                      c("NRAS", "KRAS","TP53", "ERBB2", "BRCA1", "MET", "BRAF"),
                      c("KIT","PDGFRA", "ROS1", "RET", "APC", "ALK", "BRCA2"),
                      HCC827_bam_list, "HCC827")
-ggsave(filename = "H3K36me3 distribution HCC827.png",
-       width = 9137, height = 5812, units = "px",
-       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables/figure 1",
-       dpi = 1200,
-       device = "png")
 e.score_distribution("Complete table of all targets.txt",
                      c("NRAS", "KRAS","TP53", "ERBB2", "BRCA1"
                        , "APC", "EGFR", "MET", "BRAF"),
                      c("KIT","PDGFRA", "ROS1", "RET", "ALK", "BRCA2"),
                      A549_bam_list, "A549")
-ggsave(filename = "H3K36me3 distribution A549.png",
-       width = 9137, height = 5812, units = "px",
-       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables/figure 1",
-       dpi = 1200,
-       device = "png")
 e.score_distribution("Complete table of all targets.txt",
                      c("NRAS", "KRAS","TP53", "ERBB2", "BRCA1"
                        , "EGFR", "MET", "BRAF"),
                      c("KIT","PDGFRA", "ROS1", "RET", "ALK", "BRCA2", "APC"),
                      HCC827_MET_bam_list, "HCC827-MET")
-ggsave(filename = "H3K36me3 distribution HCC827-MET.png",
-       width = 9137, height = 5812, units = "px",
-       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables/figure 1",
-       dpi = 1200,
-       device = "png")
 
 coverages("HCC827.bedgraph", z = "AVENIO_genes.txt")
 
@@ -130,12 +114,6 @@ e.score_distribution("Complete table of all targets.txt",
                        ,"MET", "BRAF", "BRCA2"),
                      c("KIT","PDGFRA", "ROS1", "RET"),
                      combined_bamlist, "A549, HCC827 and HCC827-MET")
-ggsave(filename = "H3K36me3 distribution all cell lines.png",
-       width = 9137, height = 5812, units = "px",
-       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables/figure 1",
-       dpi = 1200,
-       device = "png")
-
 A549_enrichment <- e.score(A549_ChIP, "Coverage of AVENIO genes.txt",gr("AVENIO_genes.txt"))
 HCC827_enrichment <- e.score(HCC827_ChIP, "Coverage of AVENIO genes.txt",gr("AVENIO_genes.txt"))
 clone3_enrichment <- e.score(Clone3_ChIP, "Coverage of AVENIO genes.txt",gr("AVENIO_genes.txt"))
@@ -204,8 +182,6 @@ gg_enrichment(A549_enrichment, "A549 H3K36me3 ChIP enrichment", bad)
 gg_enrichment(HCC827_enrichment, "HCC827 H3K36me3 ChIP enrichment", bad)
 gg_enrichment(clone3_enrichment, "Clone3 H3K36me3 ChIP enrichment", bad)
 
--log10(0.05)
-
 setwd("C:/Users/Christoffer/OneDrive/1PhD/RNA-seq/BGI/RNA-seq 10102022")
 TPM_AVENIO <- RNA_TPM("Gene abundance 03112022.txt",c("log2_A549_R1",
                                                       "log2_A549_R2",
@@ -245,19 +221,32 @@ RNA_plot_genes(RNA_TPM("Gene abundance 03112022.txt", c("A549_R1", "A549_R2", "A
                                                         "HCC827_R1", "HCC827_R2", "HCC827_R3",
                                                         "HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")),
                c("HCC827_R1", "HCC827_R2", "HCC827_R3"), "HCC827")
-
+ggsave(filename = "RNA expression 12 genes HCC827.png",
+       width = 12275, height = 7800, units = "px",
+       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables/supplementary",
+       dpi = 1200,
+       device = "png")
 
 
 RNA_plot_genes(RNA_TPM("Gene abundance 03112022.txt", c("A549_R1", "A549_R2", "A549_R3",
                                                         "HCC827_R1", "HCC827_R2", "HCC827_R3",
                                                         "HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")),
                c("A549_R1", "A549_R2", "A549_R3"), "A549")
+ggsave(filename = "RNA expression 12 genes A549.png",
+       width = 12275, height = 7800, units = "px",
+       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables/supplementary",
+       dpi = 1200,
+       device = "png")
 
 RNA_plot_genes(RNA_TPM("Gene abundance 03112022.txt", c("A549_R1", "A549_R2", "A549_R3",
                                                         "HCC827_R1", "HCC827_R2", "HCC827_R3",
                                                         "HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")),
                c("HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3"), "HCC827-MET")
-
+ggsave(filename = "RNA expression 12 genes HCC827-MET.png",
+       width = 12275, height = 7800, units = "px",
+       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables/supplementary",
+       dpi = 1200,
+       device = "png")
 
 
 RNA_plot_genes(RNA_TPM("Gene abundance 03112022.txt", c("A549_R1", "A549_R2", "A549_R3",
@@ -318,8 +307,14 @@ ChIPcorr_cell(mean_HCC827_MET_enrichment, mean_HCC827_enrichment, "HCC827-MET", 
 ChIPcorr_cell(mean_HCC827_MET_enrichment, mean_HCC827_enrichment, "HCC827-MET", "HCC827",bad, z = 1)
 ChIPcorr_cell(mean_HCC827_MET_enrichment, mean_HCC827_enrichment, "HCC827-MET", "HCC827", z = 1)
 
+ChIPcorr_cell(mean_A549_enrichment, mean_HCC827_enrichment, "HCC827", "A549",bad)
+ChIPcorr_cell(mean_HCC827_MET_enrichment, mean_HCC827_enrichment, "HCC827", "HCC827-MET", bad)
 
-
+ggsave(filename = "A549 vs. HCC827 ChIP.png",
+       width = 9037, height = 5822, units = "px",
+       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables/figure 2",
+       dpi = 1200,
+       device = "png")
 
 venn(A549_enrichment, HCC827_enrichment, TPM_AVENIO, "log2.HCC827", "log2.A549",
      bad, d = 1)
@@ -458,6 +453,11 @@ ChIPcorr(Adeno2_enrichment, Adeno3_enrichment, "NAC.2", "NAC.3",bad)
 ChIPcorr(Adeno2_enrichment, Adeno4_enrichment, "NAC.2", "NAC.4",bad)
 ChIPcorr(Adeno4_enrichment, Adeno3_enrichment, "NAC.4", "NAC.3",bad)
 
+ggsave(filename = "cfChIP-seq comparison of NAC.2 and NAC.4.png",
+       width = 10312, height = 7437, units = "px",
+       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables/supplementary",
+       dpi = 1200,
+       device = "png")
 
 
 
@@ -487,6 +487,12 @@ ChIPcorr(Plano_tot_enrichment, SCLC_tot_enrichment, "Plano avg", "SCLC avg", bad
 ChIPcorr(NSCLC_tot_enrichment,SCLC_tot_enrichment, "NSCLC", "SCLC", bad)
 ChIPcorr_fun(NSCLC_tot_unnormalized_enrichment,average_enrichment(list_healthy_enrichment), "NSCLC", "Healthy", bad)
 
+ggsave(filename = "cfChIP-seq comparison of NSCLC and healthy.png",
+       width = 9137, height = 5812, units = "px",
+       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables/supplementary",
+       dpi = 1200,
+       device = "png")
+
 EGFR_mut <- list(Adeno1_enrichment, Adeno4_enrichment)
 EGFR_wt <- list(Adeno2_enrichment, Adeno3_enrichment,
                 Plano1_enrichment, Plano2_enrichment,
@@ -498,7 +504,7 @@ ChIPcorr(EGFR_mut_enrichment, EGFR_WT_enrichment, "EGFR mutated", "EGFR WT", bad
 
 ggsave(filename = "cfChIP-seq comparison of EGFR mutated and EGFR WT NSCLC.png",
        width = 10312, height = 7437, units = "px",
-       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables",
+       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables/figure 3",
        dpi = 1200,
        device = "png")
 
@@ -556,7 +562,7 @@ ChIPcorr_fun <- function(x,y,p,q,b = NULL,z = NULL){
             labs(title=paste("cfChIP-seq comparison of", p, "and",q), 
                  x = "Genes", y= "Relative enrichment")+
             scale_colour_gradient2(midpoint = 0, low="#ffa10c", mid ="grey", 
-                                   high="#6a00fc", name = "Log2 difference", 
+                                   high="#6a00fc", name = expression(bold(log[2]("FC"))), 
                                    limits=c(round(min(df$log2FC))-0.5,round(max(df$log2FC))+0.5))+
             geom_abline(intercept = 0, slope = 0, color = "Black", linetype = "solid", size = 1.5)+
             geom_label_repel(
@@ -567,6 +573,7 @@ ChIPcorr_fun <- function(x,y,p,q,b = NULL,z = NULL){
                 label.padding = 0.2,
                 color="#6a00fc",
                 label.size = NA,
+                nudge_y = 0.3,
                 parse = F,
                 size = 3.5,
                 max.overlaps = 100,

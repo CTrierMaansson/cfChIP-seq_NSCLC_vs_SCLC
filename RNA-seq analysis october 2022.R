@@ -1,5 +1,5 @@
 setwd("C:/Users/Christoffer/OneDrive/1PhD/RNA-seq/BGI/RNA-seq 10102022")
-library(dplyr)
+
 TPM <- read.table("Gene abundance 03112022.txt", header = T)
 colnames(TPM)[8:10] <- c("HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")
 setwd("C:/Users/Christoffer/OneDrive/1PhD/RNA-seq/BGI/Data/Gene abundance files")
@@ -73,15 +73,15 @@ volcano_dif <- function(x,y){
                                size = max_log2_TPM, fill = Log2FC))+
         geom_point(shape = 21,
                    stroke = 0.5,)+
-        scale_size_continuous(name = expression(log[2]("TPM+1")),
+        scale_size_continuous(name = expression(bold(log[2]("TPM+1"))),
                    limits = c(0,15))+
         scale_fill_gradient2(low = "#ffa10c", high = "#6a00fc",
                              mid = "grey",
-                             name = expression(log[2]("FC")))+
+                             name = expression(bold(log[2]("FC"))))+
         guides(colour = guide_colourbar(order = 1),
                size = guide_legend(order = 2))+
-        xlab(expression(log[2]("FC")))+
-        ylab(expression(paste("-",log[10]("q-value"), sep = "")))+
+        xlab(expression(bold(log[2]("FC"))))+
+        ylab(expression(bold(paste("-",log[10]("q-value"), sep = ""))))+
         labs(title = y)+
         geom_vline(xintercept = c(0,-1,1),
                    linetype = c("solid","dashed","dashed"),
@@ -119,20 +119,20 @@ volcano_dif <- function(x,y){
     return(gg)
 }
 gg1 <- volcano_dif(HCC827_vs_A549, "HCC827 compared to A549")
-
+gg1
 ggsave(filename = "A549 vs. HCC827.png",
        plot = gg1,
        width = 8513, height = 6338, units = "px",
-       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables",
+       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables/figure 2",
        dpi = 1200,
        device = "png")
 
 gg2 <- volcano_dif(HCC827_vs_HCC827_MET, "HCC827 compared to HCC827-MET")
 
-ggsave(filename = "figure 2 HCC827-MET vs. HCC827.png",
+ggsave(filename = "HCC827-MET vs. HCC827.png",
        plot = gg2,
        width = 8513, height = 6338, units = "px",
-       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables",
+       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables/figure 2",
        dpi = 1200,
        device = "png")
 

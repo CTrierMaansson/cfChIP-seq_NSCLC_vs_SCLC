@@ -181,15 +181,15 @@ volcano_dif <- function(x,y){
   gg <- ggplot(data = x, aes(x = Log2FC, y = Log10p,
                size = which, fill = Log2FC))+
     geom_point(shape = 21,
-               stroke = 0,)+
+               stroke = 0.5)+
     scale_fill_gradient2(low = "#ffa10c", high = "#6a00fc",
                            mid = "grey",
-                           name = expression(log[2]("FC")),
+                           name = expression(bold(log[2]("FC"))),
                            limits= c(-7,7))+
-    scale_size(name = expression(log[2]("TPM+1")),
+    scale_size(name = expression(bold(log[2]("TPM+1"))),
                          limits= c(0,9))+
-    xlab(expression(log[2]("FC")))+
-    ylab(expression(paste("-",log[10]("q-value"), sep = "")))+
+    xlab(expression(bold(log[2]("FC"))))+
+    ylab(expression(bold(paste("-",log[10]("q-value"), sep = ""))))+
     labs(title = y)+
     geom_vline(xintercept = 0,
                linetype = "solid",
@@ -218,6 +218,12 @@ volcano_dif <- function(x,y){
 sort_result_dif <- result_dif %>% dplyr::filter(gene %ni% bad)
 volcano_dif(sort_result_dif, "NSCLC compared to PBMC RNA-seq")
 grs$SYMBOL[grs$SYMBOL %ni% bad]
+
+ggsave(filename = "NSCLC comparet to PBMC RNA-seq.png",
+       width = 9137, height = 5812, units = "px",
+       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables/supplementary",
+       dpi = 1200,
+       device = "png")
 
 sort_result_dif <- sort_result_dif %>% dplyr::filter(!is.na(q.value))
 sort_result_dif_NSCLC <- sort_result_dif %>% dplyr::filter(Log2FC>2)
