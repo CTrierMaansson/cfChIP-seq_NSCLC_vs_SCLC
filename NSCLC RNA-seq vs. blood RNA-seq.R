@@ -30,7 +30,9 @@ TPM_df <- read.table("GSE107011_TPM.txt", header = T)
 #https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE107011
 PBMC_cols <- colnames(TPM_df)[grepl("PBMC",colnames(TPM_df))]
 PBMC_cols
+library(dplyr)
 PBMC_df <- TPM_df %>% dplyr::select(PBMC_cols)
+PBMC_df
 library(EnsDb.Hsapiens.v86)
 
 PBMC_df$GENEID <- unlist(lapply(stringr::str_split(rownames(PBMC_df), "[.]"), "[[", 1))
@@ -39,6 +41,10 @@ symbols <- ensembldb::select(EnsDb.Hsapiens.v86,
                              keytype = "GENEID", 
                              columns = c("SYMBOL","GENEID"))
 merged_PBMC <- merge(symbols,PBMC_df)
+PBMC_data <- merged_PBMC %>% dplyr::select(SYMBOL,PBMC_cols)
+PBMC_data
+avg_PBMC_data <- avg_log2TPM(PBMC_data)
+avg_PBMC_data
 PBMC_AVENIO <- merged_PBMC %>% dplyr::select(SYMBOL,PBMC_cols) %>% dplyr::filter(SYMBOL %in% grs$SYMBOL)
 
 avg_PBMC_AVENIO <- avg_log2TPM(PBMC_AVENIO)

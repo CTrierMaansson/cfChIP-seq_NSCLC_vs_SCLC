@@ -277,7 +277,7 @@ x #Enrichment data.frame return from e.score() for sample 1
 y #Enrichment data.frame return from e.score() for sample 2
 p #Name of sample 1
 q #Name of sample 2
-b #optional: list of genes returned by badgene(), otherwise type NULL
+b #optional: list of genes returned by badgene()
 z #optional: cut-off of difference, otherwise NULL for top 15 differentially expressed genes
 
 ChIPcorr <- function(x,y,p,q,b = NULL,z = NULL){
@@ -463,7 +463,7 @@ x #Enrichment data.frame return from e.score() for sample 1
 y #Enrichment data.frame return from e.score() for sample 2
 p #x-axis title
 q #y-axis title
-b #optional: list of genes returned by badgene(), otherwise type NULL
+b #optional: list of genes returned by badgene()
 ChIPcorr_cell <- function(x,y,p,q,b = NULL){
   library(dplyr)
   library(ggplot2)
@@ -503,8 +503,7 @@ ChIPcorr_cell <- function(x,y,p,q,b = NULL){
                              limits=c(round(min(df$y))-1,round(max(df$y))+1))+
       theme_bw()+
       labs(title=paste("Average ChIP-seq enrichment of", p, "and", q), 
-           x = "Genes", 
-           y = "Relative enrichment")+
+           x = "Genes", y = "Relative enrichment")+
       geom_hline(yintercept = 0, color = "Black", linetype = "solid", size = 1)+
       geom_label_repel(
           aes(label=ifelse(reverse > (length(reverse))-15, as.character(paste(genes)),"")),
@@ -533,6 +532,84 @@ ChIPcorr_cell <- function(x,y,p,q,b = NULL){
                  color = "#ffa10c", label.size = 0, size = 5)+
       th
   return(gg)
+}
+x #Enrichment data.frame return from e.score() for sample 1
+y #Enrichment data.frame return from e.score() for sample 2
+p #x-axis title
+q #y-axis title
+b #optional: list of genes returned by badgene()
+d #data.frame returned by diff_gene_express_filter()
+ChIPcorr_cell_filter <- function(x,y,p,q,b = NULL,d){
+    library(dplyr)
+    library(ggplot2)
+    library(ggrepel)
+    `%ni%` <- Negate(`%in%`)
+    if(length(x$genes) == length(y$genes)){
+        y = y
+        x = x
+    }
+    else{
+        if (length(x$genes) > length(y$genes)){
+            x <- x %>% filter(genes %in% y$genes)
+        }
+        if (length(y$genes) > length(x$genes)){
+            y <- y %>% filter(genes %in% x$genes)
+        }
+    }
+    y <- y[(match(x$genes, y$genes)),]
+    df <- data.frame(genes = x$genes, x = log2(x$enrichment), y = log2(y$enrichment))
+    if (is.null(b)){
+        df <- df
+    }
+    else{
+        df <- df %>% filter(genes %ni% b)
+    } 
+    df <- na.omit(df)
+    df <- df %>% filter(genes %in% d$gene)
+    d_sig_up <- d$gene[d$q.value < 0.05 & d$Log2FC > 1]
+    d_sig_down <- d$gene[d$q.value < 0.05 & d$Log2FC < -1]
+    model <- lm(y~x, data=df)
+    df <- data.frame(genes = df$genes,
+                     x = fitted(model), 
+                     y = resid(model))
+    df <- df[order(df$y),]
+    df$reverse <- c(1:length(df$genes))
+    gg <- ggplot(data = df, aes(x = reverse, y = y, color = y))+
+        geom_point(size = 4)+
+        scale_colour_gradient2(midpoint = 0, low="#ffa10c", mid ="grey", 
+                               high="#6a00fc", name = expression(bold(log[2]("FC"))), 
+                               limits=c(round(min(df$y))-1,round(max(df$y))+1))+
+        theme_bw()+
+        labs(title=paste("Average ChIP-seq enrichment of", p, "and", q), 
+             x = "Genes", y = "Relative enrichment")+
+        geom_hline(yintercept = 0, color = "Black", linetype = "solid", size = 1)+
+        geom_label_repel(
+            aes(label=ifelse(genes %in% d_sig_up, as.character(paste(genes)),"")),
+            segment.color="#6a00fc",
+            color = "#6a00fc",
+            label.size = NA,
+            nudge_y = 0,
+            parse = F,
+            size = 3.5,
+            max.overlaps = 100,
+            fill = alpha(c("white"),0))+
+        geom_label_repel(
+            aes(label=ifelse(genes %in% d_sig_down, as.character(paste(genes)),"")),
+            segment.color="#ffa10c",
+            color = "#ffa10c",
+            label.size = NA,
+            nudge_y = 0,
+            parse = F,
+            size = 3.5,
+            max.overlaps = 100,
+            fill = alpha(c("white"),0))+
+        geom_label(x = (min(df$reverse)+0.25*max(df$reverse)), y = (max(df$y)-0.5), 
+                   label = paste("Upregulated in",p),
+                   color = "#6a00fc", label.size = 0, size = 5)+
+        geom_label(x = (max(df$reverse)-0.25*max(df$reverse)), y = (min(df$y)+0.5), label = paste("Upregulated in",q),
+                   color = "#ffa10c", label.size = 0, size = 5)+
+        th
+    return(gg)
 }
 
 ####Plot of enrichment relative to TSS####
@@ -796,7 +873,7 @@ z #Name on TPM df
 d #tick distance on Y-axis
 b #optional: list of genes returned by badgene(), otherwise type NULL
 FCplot <- function(x,y,z,b = NULL){
-      library(dplyr)
+  library(dplyr)
   library(ggplot2)
   library(stringr)
   library(ggrepel)
@@ -1468,7 +1545,81 @@ volcano_dif <- function(x,y){
         th
     return(gg)
 }
-gg1 <- volcano_dif(HCC827_vs_A549, "HCC827 compared to A549")
+
+volcano_dif_filter <- function(x,y){
+    library(ggplot2)
+    library(ggrepel)
+    p <- -log10(x$q.value)
+    x$Log10p <- p
+    x <- x %>% dplyr::filter(!is.na(q.value))
+    x <- x %>% dplyr::filter(gene %ni% bad)
+    which_m <- apply(x, MARGIN =1, FUN = function(z){
+        g1 <- as.numeric(z[2])
+        g2 <- as.numeric(z[4])
+        return(max(g1,g2))
+    })
+    x$max_log2_TPM <- which_m
+    x_1_name <- strsplit(colnames(x)[2],"_")[[1]][3]
+    x_2_name <- strsplit(colnames(x)[4],"_")[[1]][3]
+    group1_high <- length(x[x$Log2FC>0,]$Log2FC)
+    group2_high <- length(x[x$Log2FC<0,]$Log2FC)
+    x <- x %>% mutate(Upregulation = ifelse(Log2FC > 1 & Log10p > (-log10(0.05)),
+                                       paste(x_1_name),
+                                       ifelse(Log2FC < -1 & Log10p > (-log10(0.05)),
+                                              paste(x_2_name),"None"))) %>% 
+        mutate(Upregulation = factor(Upregulation,
+                                     levels = c(x_1_name,x_2_name,"None")))
+    gg <- ggplot(data = x, aes(x = Log2FC, y = Log10p,
+                               size = max_log2_TPM, fill = Upregulation))+
+        geom_point(shape = 21,
+                   stroke = 0.5,)+
+        scale_size_continuous(name = expression(bold(log[2]("TPM+1"))))+
+        scale_fill_manual(values = c("#6a00fc","#ffa10c","grey"),
+                             name = "Upregulation")+
+        guides(colour = guide_colourbar(order = 1),
+               size = guide_legend(order = 2))+
+        xlab(expression(log[2]("FC")))+
+        ylab(expression(bold(paste("-",log[10]("q-value"), sep = ""))))+
+        labs(title = y)+
+        geom_vline(xintercept = c(0,-1,1),
+                   linetype = c("solid","dashed","dashed"),
+                   colour = c("black", "black", "black"),
+                   size = c(1,1,1))+
+        geom_hline(yintercept = -log10(0.05),
+                   linetype = "dashed",
+                   color = "black")+
+        geom_label(x = 4, y = 0, label = paste(strsplit(colnames(x)[2],"_")[[1]][3]),
+                   color = "#6a00fc", label.size = 0, size = 5,
+                   fill="white")+
+        geom_label(x = -4, y = 0, label = paste(strsplit(colnames(x)[4],"_")[[1]][3]),
+                   color = "#ffa10c", label.size = 0, size = 5,
+                   fill="white")+
+        theme_bw(base_size = 17)+
+        scale_x_continuous(breaks = seq(-10, 10, by = 2), limits = c(-10,10))+
+        geom_label_repel(
+            aes(label=ifelse(Log2FC > 1 & Log10p > (-log10(0.05)) , as.character(gene),"")),
+            segment.color="#6a00fc",
+            color="#6a00fc",
+            nudge_x = 1,
+            label.size = NA,
+            size = 2.5,
+            fill = alpha(c("white"),0),
+            parse = F,
+            max.overlaps = 100)+
+        geom_label_repel(
+            aes(label=ifelse(Log2FC < -1 & Log10p > (-log10(0.05)), as.character(gene),"")),
+            segment.color="#ffa10c",
+            color="#ffa10c",
+            nudge_x = -1,
+            label.size = NA,
+            size = 2.5,
+            fill = alpha(c("white"),0),
+            parse = F,
+            max.overlaps = 100)+
+        guides(fill = guide_legend(override.aes = list(size = 5)))+
+        th
+    return(gg)
+}
 ####diff gene expression RNA_seq####
 x #Data.frame with TPM data
 y #vector of length 2 with root column names to be analyzed
@@ -1512,9 +1663,82 @@ dif_gene_express <- function(x,y){
     kk <- kk[order(-abs(kk$Log2FC)),]
     return(kk)
 }
-dif_gene_express(TPM_AVENIO, c("HCC827_", "A549_"))
-HCC827_vs_A549 <- dif_gene_express(TPM_AVENIO, c("HCC827_", "A549_"))
-HCC827_vs_HCC827_MET <- dif_gene_express(TPM_AVENIO, c("HCC827_", "HCC827-MET_"))
+dif_gene_express(TPM_reduced, c("HCC827_", "A549_"))
+dif_gene_express(TPM_reduced, c("HCC827_", "HCC827-MET_"))
+
+####diff gene expression RNA_seq####
+x #Data.frame with TPM data
+y #vector of length 2 with root column names to be analyzed
+b #optional: list of genes returned by badgene(). Default is NULL
+dif_gene_express_filter <- function(x,y,b = NULL){
+    library(dplyr)
+    library(parameters)
+    `%ni%` <- Negate(`%in%`)
+    df <- x
+    if(!is.null(b)){
+        df <- df %>% filter(SYMBOL %ni% b)
+    }
+    group1_df <- df[grepl(y[1],colnames(df))]
+    group2_df <- df[grepl(y[2],colnames(df))]
+    rownames(group1_df) <- df$SYMBOL
+    rownames(group2_df) <- df$SYMBOL
+    group1_t <- as.data.frame(t(group1_df))
+    group2_t <- as.data.frame(t(group2_df))
+    group1 <- c()
+    group2 <- c()
+    logg1 <- c()
+    logg2 <- c()
+    for (i in 1:(length(group1_t))){
+        g1 <- log2(group1_t[,i]+1)
+        g2 <- log2(group2_t[,i]+1)
+        group1[i] <- mean(g1)
+        group2[i] <- mean(g2)
+        #logg1[i] <- log2(mean(g1)+1)
+        #logg2[i] <- log2(mean(g2)+1)
+    }
+    df1 <- data.frame(gene = colnames(group1_t),
+                      log2TPM_1 = group1,
+                      log2TPM_2 = group2)
+    df1 <- df1 %>% filter((log2TPM_1 > 0.2 | log2TPM_2 > 0.2 ))
+    df <- df %>% filter(SYMBOL %in% df1$gene)
+    group1_df <- df[grepl(y[1],colnames(df))]
+    group2_df <- df[grepl(y[2],colnames(df))]
+    rownames(group1_df) <- df$SYMBOL
+    rownames(group2_df) <- df$SYMBOL
+    group1_t <- as.data.frame(t(group1_df))
+    group2_t <- as.data.frame(t(group2_df))
+    p <- c()
+    group1 <- c()
+    group2 <- c()
+    se_group1 <- c()
+    se_group2 <- c()
+    logg1 <- c()
+    logg2 <- c()
+    for (i in 1:(length(group1_t))){
+        g1 <- log2(group1_t[,i]+1)
+        g2 <- log2(group2_t[,i]+1)
+        se_group1[i] <- parameters::standard_error(g1)
+        se_group2[i] <- parameters::standard_error(g2)
+        p[i] <- t.test(g2,g1, paired = F, alternative = "two.sided")$p.value
+        group1[i] <- mean(g1)
+        group2[i] <- mean(g2)
+    }
+    q <- p.adjust(p, method = "fdr")
+    kk <- data.frame(gene = colnames(group1_t),
+                     group1_name = group1,
+                     group1_se = se_group1,
+                     group2_name = group2,
+                     group_2_se = se_group2,
+                     p.value = p,
+                     q.value = q,
+                     Log2FC = group1-group2)
+    colnames(kk)[2] <- paste("mean_TPM_",strsplit(y[1],"_")[[1]], sep = "")
+    colnames(kk)[3] <- paste("se_TPM_",strsplit(y[1],"_")[[1]], sep = "")
+    colnames(kk)[4] <- paste("mean_TPM_",strsplit(y[2],"_")[[1]], sep = "")
+    colnames(kk)[5] <- paste("se_TPM_",strsplit(y[2],"_")[[1]], sep = "")
+    kk <- kk[order(-abs(kk$Log2FC)),]
+    return(kk)
+}
 
 ####UMAP ChIP-seq####
 x #transposed and bound samples returned by bind_samples()

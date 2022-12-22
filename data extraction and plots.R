@@ -199,14 +199,16 @@ colnames(TPM)[8:10] <- c("HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")
 
 TPM_reduced <- TPM[TPM$SYMBOL %in% grs$SYMBOL,]
 colnames(TPM_reduced)[8:10] <- c("HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")
-HCC827_vs_A549 <- dif_gene_express(TPM_reduced, c("HCC827_", "A549_"))
-HCC827_vs_HCC827_MET <- dif_gene_express(TPM_reduced, c("HCC827_", "HCC827-MET_"))
-`%ni%` <- Negate(`%in%`)
-HCC827_vs_A549 <- HCC827_vs_A549 %>% dplyr::filter(gene %ni% bad)
-HCC827_vs_HCC827_MET <- HCC827_vs_HCC827_MET %>% dplyr::filter(gene %ni% bad)
 
-volcano_dif(HCC827_vs_A549, "HCC827 compared to A549")
-volcano_dif(HCC827_vs_HCC827_MET, "HCC827 compared to HCC827-MET")
+HCC827_vs_HCC827_MET <- dif_gene_express_filter(TPM_reduced, c("HCC827_", "HCC827-MET_"),bad)
+HCC827_vs_A549 <- dif_gene_express_filter(TPM_reduced, c("HCC827_", "A549_"),bad)
+volcano_dif_filter(HCC827_vs_A549, "HCC827 compared to A549")
+volcano_dif_filter(HCC827_vs_HCC827_MET, "HCC827 compared to HCC827-MET")
+ggsave(filename = "A549 vs. HCC827.png",
+       width = 8413, height = 6338, units = "px",
+       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/re-revised submission/figures and tables/figure 2",
+       dpi = 1200,
+       device = "png")
 umap_RNA_seq(TPM,c("A549_", "HCC827_", "HCC827-MET_"))
 mean_A549_TPM <- RNA_mean(TPM_AVENIO, "log2_A549_")
 mean_HCC827_TPM <- RNA_mean(TPM_AVENIO, "log2_HCC827_")
@@ -307,14 +309,9 @@ ChIPcorr_cell(mean_HCC827_MET_enrichment, mean_HCC827_enrichment, "HCC827-MET", 
 ChIPcorr_cell(mean_HCC827_MET_enrichment, mean_HCC827_enrichment, "HCC827-MET", "HCC827",bad, z = 1)
 ChIPcorr_cell(mean_HCC827_MET_enrichment, mean_HCC827_enrichment, "HCC827-MET", "HCC827", z = 1)
 
-ChIPcorr_cell(mean_A549_enrichment, mean_HCC827_enrichment, "HCC827", "A549",bad)
-ChIPcorr_cell(mean_HCC827_MET_enrichment, mean_HCC827_enrichment, "HCC827", "HCC827-MET", bad)
+ChIPcorr_cell_filter(mean_A549_enrichment, mean_HCC827_enrichment, "HCC827", "A549",bad, HCC827_vs_A549)
+ChIPcorr_cell_filter(mean_HCC827_MET_enrichment, mean_HCC827_enrichment, "HCC827", "HCC827-MET", bad,HCC827_vs_HCC827_MET)
 
-ggsave(filename = "A549 vs. HCC827 ChIP.png",
-       width = 9037, height = 5822, units = "px",
-       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables/figure 2",
-       dpi = 1200,
-       device = "png")
 
 venn(A549_enrichment, HCC827_enrichment, TPM_AVENIO, "log2.HCC827", "log2.A549",
      bad, d = 1)
