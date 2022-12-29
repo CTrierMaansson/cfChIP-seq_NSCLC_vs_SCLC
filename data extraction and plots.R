@@ -114,6 +114,13 @@ e.score_distribution("Complete table of all targets.txt",
                        ,"MET", "BRAF", "BRCA2"),
                      c("KIT","PDGFRA", "ROS1", "RET"),
                      combined_bamlist, "A549, HCC827 and HCC827-MET")
+e.score_distribution_single("Complete table of all targets.txt",
+                            c("NRAS", "KRAS","TP53", "ERBB2", "BRCA1"
+                              ,"MET", "BRAF", "BRCA2"),
+                            c("KIT","PDGFRA", "ROS1", "RET"),
+                            combined_bamlist, "A549, HCC827 and HCC827-MET")
+
+
 A549_enrichment <- e.score(A549_ChIP, "Coverage of AVENIO genes.txt",gr("AVENIO_genes.txt"))
 HCC827_enrichment <- e.score(HCC827_ChIP, "Coverage of AVENIO genes.txt",gr("AVENIO_genes.txt"))
 clone3_enrichment <- e.score(Clone3_ChIP, "Coverage of AVENIO genes.txt",gr("AVENIO_genes.txt"))
@@ -141,11 +148,6 @@ bound_cell_ChIP <- bind_samples(list(A549_R1_enrichment,
                                   "HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3"),
                                 c(rep("A549", 3), rep("HCC827", 3), rep("HCC827-MET",3)))
 umap_ChIP_seq(bound_cell_ChIP)
-ggsave(filename = "ChIP-seq UMAP.png",
-       width = 7437, height = 7437, units = "px",
-       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables",
-       dpi = 1200,
-       device = "png")
 
 mean_A549_enrichment <- average_enrichment(list(A549_R1_enrichment, 
                                                 A549_R2_enrichment, 
@@ -156,10 +158,6 @@ mean_HCC827_enrichment <- average_enrichment(list(HCC827_R1_enrichment,
 mean_HCC827_MET_enrichment <- average_enrichment(list(HCC827_MET_R1_enrichment, 
                                                       HCC827_MET_R2_enrichment, 
                                                       HCC827_MET_R3_enrichment))
-mean_A549_enrichment
-mean_HCC827_enrichment
-mean_HCC827_MET_enrichment
-nrow(TPM)
 
 gg_enrichment(A549_enrichment, "A549 H3K36me3 ChIP enrichment")
 gg_enrichment(HCC827_enrichment, "HCC827 H3K36me3 ChIP enrichment")
@@ -204,7 +202,7 @@ HCC827_vs_HCC827_MET <- dif_gene_express_filter(TPM_reduced, c("HCC827_", "HCC82
 HCC827_vs_A549 <- dif_gene_express_filter(TPM_reduced, c("HCC827_", "A549_"),bad)
 volcano_dif_filter(HCC827_vs_A549, "HCC827 compared to A549")
 volcano_dif_filter(HCC827_vs_HCC827_MET, "HCC827 compared to HCC827-MET")
-ggsave(filename = "A549 vs. HCC827.png",
+ggsave(filename = "HCC827-MET vs. HCC827.png",
        width = 8413, height = 6338, units = "px",
        path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/re-revised submission/figures and tables/figure 2",
        dpi = 1200,
@@ -223,11 +221,6 @@ RNA_plot_genes(RNA_TPM("Gene abundance 03112022.txt", c("A549_R1", "A549_R2", "A
                                                         "HCC827_R1", "HCC827_R2", "HCC827_R3",
                                                         "HCC827-MET_R1", "HCC827-MET_R2", "HCC827-MET_R3")),
                c("HCC827_R1", "HCC827_R2", "HCC827_R3"), "HCC827")
-ggsave(filename = "RNA expression 12 genes HCC827.png",
-       width = 12275, height = 7800, units = "px",
-       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables/supplementary",
-       dpi = 1200,
-       device = "png")
 
 
 RNA_plot_genes(RNA_TPM("Gene abundance 03112022.txt", c("A549_R1", "A549_R2", "A549_R3",

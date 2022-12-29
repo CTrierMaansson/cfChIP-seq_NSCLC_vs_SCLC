@@ -453,9 +453,11 @@ conf <- function(x,y,b = NULL){
     return(kk)
 }
 setwd("C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article")
-
+conf(NSCLC_tot_unnormalized_enrichment, average_enrichment(list_healthy_enrichment), bad)
 write_xlsx(conf(EGFR_mut_enrichment, EGFR_WT_enrichment, bad),
            "Confidence interval of EGFR-mut vs. EGFR-WT.xlsx")
+write_xlsx(conf(NSCLC_tot_unnormalized_enrichment, average_enrichment(list_healthy_enrichment), bad),
+           "Confidence interval of NSCLC vs. Healthy.xlsx")
 
 ####Normalized correlation plot for cells####
 
@@ -731,6 +733,119 @@ e.score_distribution <- function(x,y,z,b, t){
     th
   return(gg)
 }
+e.score_distribution_single <- function(x,y,z,b, t){
+    library(BiocParallel)
+    library(dplyr)
+    library(ggplot2)
+    library(stringr)
+    targets <- gr(x)
+    targets <- targets[targets$SYMBOL %in% c(y,z)]
+    x1 <- read.table(x, header = T)
+    xx <- x1[(x1$SYMBOL %in% c(y,z)),]
+    targets$length <- xx$end - xx$start
+    
+    if (length(b) > 3){
+        se_ChIP_R1 <- summarizeOverlaps(features = targets, reads = b$R1, 
+                                        ignore.strand = T, mode = "Union")
+        se_ChIP_R2 <- summarizeOverlaps(features = targets, reads = b$R2, 
+                                        ignore.strand = T, mode = "Union")
+        se_ChIP_R3 <- summarizeOverlaps(features = targets, reads = b$R3, 
+                                        ignore.strand = T, mode = "Union")
+        se_ChIP_R4 <- summarizeOverlaps(features = targets, reads = b$R4, 
+                                        ignore.strand = T, mode = "Union")
+        se_ChIP_R5 <- summarizeOverlaps(features = targets, reads = b$R5, 
+                                        ignore.strand = T, mode = "Union")
+        se_ChIP_R6 <- summarizeOverlaps(features = targets, reads = b$R6, 
+                                        ignore.strand = T, mode = "Union")
+        se_ChIP_R7 <- summarizeOverlaps(features = targets, reads = b$R7, 
+                                        ignore.strand = T, mode = "Union")
+        se_ChIP_R8 <- summarizeOverlaps(features = targets, reads = b$R8, 
+                                        ignore.strand = T, mode = "Union")
+        se_ChIP_R9 <- summarizeOverlaps(features = targets, reads = b$R9, 
+                                        ignore.strand = T, mode = "Union")
+        ChIP_reads <- data.frame(genes = targets$SYMBOL, 
+                                 readcounts = assays(se_ChIP_R1)$counts[1:length(assays(se_ChIP_R1)$counts)]+
+                                     assays(se_ChIP_R2)$counts[1:length(assays(se_ChIP_R2)$counts)]+
+                                     assays(se_ChIP_R3)$counts[1:length(assays(se_ChIP_R3)$counts)]+
+                                     assays(se_ChIP_R4)$counts[1:length(assays(se_ChIP_R4)$counts)]+
+                                     assays(se_ChIP_R5)$counts[1:length(assays(se_ChIP_R5)$counts)]+
+                                     assays(se_ChIP_R6)$counts[1:length(assays(se_ChIP_R6)$counts)]+
+                                     assays(se_ChIP_R7)$counts[1:length(assays(se_ChIP_R7)$counts)]+
+                                     assays(se_ChIP_R8)$counts[1:length(assays(se_ChIP_R8)$counts)]+
+                                     assays(se_ChIP_R9)$counts[1:length(assays(se_ChIP_R9)$counts)])
+    }
+    else{
+        se_ChIP_R1 <- summarizeOverlaps(features = targets, reads = b$R1, 
+                                        ignore.strand = T, mode = "Union")
+        se_ChIP_R2 <- summarizeOverlaps(features = targets, reads = b$R2, 
+                                        ignore.strand = T, mode = "Union")
+        se_ChIP_R3 <- summarizeOverlaps(features = targets, reads = b$R3, 
+                                        ignore.strand = T, mode = "Union")
+        ChIP_reads <- data.frame(genes = targets$SYMBOL, 
+                                 readcounts = assays(se_ChIP_R1)$counts[1:length(assays(se_ChIP_R1)$counts)]+
+                                     assays(se_ChIP_R2)$counts[1:length(assays(se_ChIP_R2)$counts)]+
+                                     assays(se_ChIP_R3)$counts[1:length(assays(se_ChIP_R3)$counts)])
+    }
+    
+    ChIP_reads$coverage <- targets$length
+    ChIP_reads <- ChIP_reads %>% filter(readcounts > 10)
+    len <- as.numeric(sum(ChIP_reads$readcounts))
+    RPKM <- c()
+    for (i in 1:length(ChIP_reads$genes)){
+        RPKM[i] <- (ChIP_reads$readcounts[i]*1000*1000000)/(len*ChIP_reads$coverage[i])
+    }
+    ChIP_reads$enrichment <- RPKM
+    ChIP_reads$activity <- c(1:length(ChIP_reads$enrichment))
+    for (i in 1:length(unique(ChIP_reads$genes))){
+        norms <- c()
+        c <- ChIP_reads %>% filter(genes %in% unique(ChIP_reads$genes)[i])
+        avg <- median(c$enrichment)
+        if (unique(ChIP_reads$genes)[i] %in% y) {
+            activity <- "Active"
+        }
+        else {
+            activity <- "Inactive"
+        }
+        ChIP_reads$activity[ChIP_reads$genes %in% unique(ChIP_reads$genes)[i]] <- activity
+    }
+    ChIP_reads$relative <- xx$Relative_distance
+    active <- ChIP_reads %>% filter(activity == "Active")
+    ac <- paste(c(sort(unique(active$genes))), collapse=', ')
+    inactive <- ChIP_reads %>% filter(activity == "Inactive")
+    ina <- paste(c(sort(unique(inactive$genes))), collapse=', ')
+    cols <- c("green4", "firebrick")
+    names(cols) <- c(paste("Active genes \nn = ", length(unique(active$genes)), "\n"),
+                     paste("Inactive genes \nn = ", length(unique(inactive$genes)),"\n"))
+    gg <- ggplot(ChIP_reads, aes(x = relative, 
+                          y = enrichment,
+                          fill = genes))+
+        geom_line(data = ChIP_reads %>% filter(activity == "Active"),
+                  aes(color = genes),
+                  size = 1)+
+        geom_point(data = ChIP_reads %>% filter(activity == "Active"),
+                   aes(color = genes),
+                   size = 3)+
+        scale_colour_manual(values = c("#98FB98","#D0F0C0",
+                                       "#9DC183","#679267",
+                                       "#3F704D","#0B6623",
+                                       "#4B5320","#043927"), name = "Active")+
+        ggnewscale::new_scale_color()+
+        geom_line(data = ChIP_reads %>% filter(activity == "Inactive"),
+                  aes(color = genes),
+                  size = 1)+
+        geom_point(data = ChIP_reads %>% filter(activity == "Inactive"),
+                   aes(color = genes),
+                   size = 3)+
+        scale_colour_brewer(palette = "Reds", name = "Inactive")+
+        theme_bw()+
+        labs(title =paste(t),
+             x = "% Relative to TSS", y="H3K36me3 Enrichment")+
+        guides(fill="none")+
+        th
+    return(gg)
+}
+
+
 ?summarizeOverlaps
 
 setwd("C:/Users/Christoffer/OneDrive/1PhD/R files/Important excel and text documents")
@@ -1549,6 +1664,7 @@ volcano_dif <- function(x,y){
 volcano_dif_filter <- function(x,y){
     library(ggplot2)
     library(ggrepel)
+    `%ni%` <- Negate(`%in%`)
     p <- -log10(x$q.value)
     x$Log10p <- p
     x <- x %>% dplyr::filter(!is.na(q.value))
@@ -1578,7 +1694,7 @@ volcano_dif_filter <- function(x,y){
                              name = "Upregulation")+
         guides(colour = guide_colourbar(order = 1),
                size = guide_legend(order = 2))+
-        xlab(expression(log[2]("FC")))+
+        xlab(expression(bold(log[2]("FC"))))+
         ylab(expression(bold(paste("-",log[10]("q-value"), sep = ""))))+
         labs(title = y)+
         geom_vline(xintercept = c(0,-1,1),
@@ -1693,8 +1809,6 @@ dif_gene_express_filter <- function(x,y,b = NULL){
         g2 <- log2(group2_t[,i]+1)
         group1[i] <- mean(g1)
         group2[i] <- mean(g2)
-        #logg1[i] <- log2(mean(g1)+1)
-        #logg2[i] <- log2(mean(g2)+1)
     }
     df1 <- data.frame(gene = colnames(group1_t),
                       log2TPM_1 = group1,

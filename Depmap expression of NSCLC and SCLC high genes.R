@@ -176,6 +176,10 @@ dge_NSCLC_SCLC <- function(x,y){
   SCLC <- c()
   se_NSCLC <- c()
   se_SCLC <- c()
+  filtered <- colnames(x)[colMeans(x) > 0.2 | colMeans(y) > 0.2]
+  filtered <- filtered[filtered %ni% bad]
+  x <- x %>% select(all_of(filtered))
+  y <- y %>% select(all_of(filtered))
   for (i in 1:length(x)){
     NSCLC_exp <- x[,i]
     SCLC_exp <- y[,i]
@@ -195,7 +199,6 @@ dge_NSCLC_SCLC <- function(x,y){
                    q.value = q,
                    Log2FC = NSCLC-SCLC)
   df <- df[order(df$Log2FC),]
-  df <- df[df$genes %ni% bad,]
   df$number <- 1:length(df$genes)
   return(df)
 }
@@ -226,51 +229,70 @@ volcano <- function(x,y){
   x$which <- which_m
   SCLC_high <- length(x[x$Log2FC<0,]$Log2FC)
   NSCLC_high <- length(x[x$Log2FC>0,]$Log2FC)
+  x <- x %>% mutate(Upregulation = ifelse(Log2FC > 1 & Log10p > (-log10(0.05)),
+                                          "NSCLC",
+                                          ifelse(Log2FC < -1 & Log10p > (-log10(0.05)),
+                                                "SCLC","None"))) %>% 
+      mutate(Upregulation = factor(Upregulation,
+                                   levels = c("NSCLC","SCLC","None")))
   gg <- ggplot(data = x, aes(x = Log2FC, y = Log10p,
-                       size = which, fill = Log2FC))+
+                       size = which, fill = Upregulation))+
     geom_point(shape = 21,
                stroke = 0.5)+
-    scale_fill_gradient2(low = "#ffa10c", high = "#6a00fc",
-                         mid = "grey",
-                         name = expression(bold(log[2]("FC"))),
-                         limits= c(-7,7))+
+    scale_fill_manual(values = c("#6a00fc","#ffa10c","grey"),
+                        name = "Upregulation")+
     scale_size(name = expression(bold(log[2]("TPM+1"))),
                limits= c(0,9))+
     xlab(expression(bold(log[2]("FC"))))+
     ylab(expression(bold(paste("-",log[10]("q-value"), sep = ""))))+
     labs(title = y)+
-    geom_vline(xintercept = 0,
-               linetype = "solid",
-               colour = "black",
-               size = 1)+
-    geom_label(x = -4, y = 1, label = paste("SCLC"),
+    geom_vline(xintercept = c(0,-1,1),
+                 linetype = c("solid","dashed","dashed"),
+                 colour = c("black", "black", "black"),
+                 size = c(1,1,1))+
+    geom_hline(yintercept = -log10(0.05),
+                 linetype = "dashed",
+                 color = "black")+
+    geom_label(x = -4, y = 0, label = paste("SCLC"),
                color = "#ffa10c", label.size = 0, size = 5,
                fill="white")+
-    geom_label(x = 4, y = 1, label = paste("NSCLC"),
+    geom_label(x = 4, y = 0, label = paste("NSCLC"),
                color = "#6a00fc", label.size = 0, size = 5,
                fill="white")+
     theme_bw(base_size = 17)+
     scale_x_continuous(breaks = seq(-7, 7, by = 1), limits = c(-7,7))+
-    geom_label_repel(
-      aes(label=ifelse(Log10p > 10, as.character(genes),"")),
-      segment.color="black",
-      color="black",
-      label.size = NA,
-      size = 4,
-      fill = alpha(c("white"),0),
-      parse = F,
-      max.overlaps = 10)+
+      geom_label_repel(
+          aes(label=ifelse(Log2FC > 1 & Log10p > (-log10(0.05)) , as.character(genes),"")),
+          segment.color="#6a00fc",
+          color="#6a00fc",
+          nudge_x = 0,
+          label.size = NA,
+          size = 2.5,
+          fill = alpha(c("white"),0),
+          parse = F,
+          max.overlaps = 100)+
+      geom_label_repel(
+          aes(label=ifelse(Log2FC < -1 & Log10p > (-log10(0.05)), as.character(genes),"")),
+          segment.color="#ffa10c",
+          color="#ffa10c",
+          nudge_x = 0,
+          label.size = NA,
+          size = 2.5,
+          fill = alpha(c("white"),0),
+          parse = F,
+          max.overlaps = 100)+
+      guides(fill = guide_legend(override.aes = list(size = 5)))+
     th
   return(gg)
 }
 volcano(dge_res, "NSCLC versus SCLC")
-ggsave(filename = "NSCLC versus SCLC.png",
+
+ggsave(filename = "NSCLC vs. SCLC cell lines.png",
        width = 12275, height = 7800, units = "px",
-       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables/supplementary",
+       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/re-revised submission/figures and tables/supplementary",
        dpi = 1200,
        device = "png")
 
-dge_res[dge_res$Log2FC>0.5,]
 NSCLC_high <- NSCLC_SCLC_ChIPdif[NSCLC_SCLC_ChIPdif$genes %in% dge_res[dge_res$Log2FC>1,]$genes,]
 SCLC_high <- NSCLC_SCLC_ChIPdif[NSCLC_SCLC_ChIPdif$genes %in% dge_res[dge_res$Log2FC<(-1),]$genes,]
 
@@ -363,7 +385,7 @@ ratio_plot(ratio_df)
 
 ggsave(filename = "cfChIP compared to CCLE expression.png",
        width = 9137, height = 5812, units = "px",
-       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/figures and tables/figure 4",
+       path = "C:/Users/Christoffer/OneDrive/1PhD/Manuskripter/Adeno, plano and SCLC article/For submission/Molecular oncology/Revised submission/re-revised submission/figures and tables/figure 4",
        dpi = 1200,
        device = "png")
 
